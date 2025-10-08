@@ -13,16 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 </head>
 <body>
   <header>
-    <h2>Company Leave Management</h2>
-    <nav>
-      <a href="/public/dashboard.php">Dashboard</a>
-      <a href="/public/apply_leave.php">Apply Leave</a>
-      <a href="/public/view_requests.php">My Requests</a>
-      <?php if ($_SESSION['role'] === 'hr' || $_SESSION['role'] === 'admin'): ?>
-        <a href="/public/approve_leave.php">Approve Leaves</a>
-      <?php endif; ?>
-      <a href="/public/logout.php">Logout</a>
-    </nav>
+            <h1>Teraju Leave Management System</h1>
   </header>
 
   <main>

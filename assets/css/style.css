@@ -1,0 +1,216 @@
+/* Reset default styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    background: #eef2f7; /* soft light background */
+    color: #2c3e50;
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 450px;
+}
+
+/* Header styling */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+header h1 {
+    font-size: 2rem;
+    color: #1f3b4d;
+    margin-bottom: 5px;
+}
+
+header p {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+/* Card style */
+.card {
+    background: #ffffffcc; /* slight transparency for modern look */
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 35px 25px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.card h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #1f3b4d;
+    font-weight: 700;
+}
+
+/* Form styling */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #34495e;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.25s ease;
+    background: #f9fafb;
+    color: #1f3b4d;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #4f9eff;
+    box-shadow: 0 0 0 3px rgba(79, 158, 255, 0.2);
+    outline: none;
+}
+
+/* Button styling */
+button.btn-full {
+    width: 100%;
+    background-color: #4f9eff;
+    color: #fff;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+button.btn-full:hover {
+    background-color: #3a7ddd;
+    transform: translateY(-2px);
+}
+
+/* Error and success messages */
+.error-box {
+    background-color: #ffe6e6;
+    color: #e74c3c;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.success-box {
+    background-color: #e6ffed;
+    color: #2ecc71;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+/* Footer and form footer */
+.form-footer {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.form-footer a {
+    color: #4f9eff;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}
+
+footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+    .card {
+        padding: 25px 20px;
+    }
+}
+
+/* Landing page specific styling */
+.card .intro-text {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #506474;
+    font-size: 1rem;
+}
+
+/* Button container */
+.buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* Button styles */
+.btn {
+    text-decoration: none;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 12px 25px;
+    font-size: 1rem;
+    transition: all 0.25s ease;
+}
+
+/* Filled button */
+.btn-full {
+    background-color: #407cc5;
+    color: #fff;
+}
+
+.btn-full:hover {
+    background-color: #396aaf;
+    transform: translateY(-2px);
+}
+
+/* Outline button */
+.btn-outline {
+    background-color: transparent;
+    border: 2px solid #407cc5;
+    color: #407cc5;
+}
+
+.btn-outline:hover {
+    background-color: #396aaf;
+    color: #fff;
+    transform: translateY(-2px);
+}
