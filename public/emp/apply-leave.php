@@ -55,6 +55,13 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
   <meta charset="UTF-8">
   <title>Apply Leave | Teraju LMS</title>
   <link rel="stylesheet" href="../../assets/css/style.css">
+  <!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+
 </head>
 <body>
 <div class="layout">
@@ -107,21 +114,22 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
                         <?php endforeach; ?>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <label for="start_date">Start Date</label>
-                    <input type="date" name="start_date" id="start_date" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="end_date">End Date</label>
-                    <input type="date" name="end_date" id="end_date" required>
-                </div>
-
                 <div class="form-group">
                     <label for="reason">Reason (optional)</label>
                     <textarea name="reason" id="reason" rows="4" style="resize:none; width:100%; padding:12px; border-radius:10px; border:1px solid #d1d5db; background:#f9fafb;"></textarea>
                 </div>
+
+            <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="text" id="start_date" name="start_date" required>
+            </div>
+
+            <div class="form-group">
+            <label for="end_date">End Date</label>
+            <input type="text" id="end_date" name="end_date" required>
+            </div>
+
+            <p id="dayCount" style="font-weight:600; color:#2563eb; margin-top:8px;">Total Days: 0</p><br>
 
                 <button type="submit" class="btn-full">Submit Leave Request</button>
             </form>
@@ -136,5 +144,69 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
         </footer>
     </div>
 </div>
+<script>
+  // Function to disable Sundays
+  function disableSundays(date) {
+    return (date.getDay() !== 0); // 0 = Sunday
+  }
+
+  // Function to calculate number of weekdays (excluding Sundays)
+  function calculateDays(start, end) {
+    let count = 0;
+    let current = new Date(start);
+
+    while (current <= end) {
+      if (current.getDay() !== 0) { // exclude Sundays
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  }
+
+  // Reference to the display element
+  const dayCount = document.getElementById("dayCount");
+
+  // Initialize Flatpickr for Start Date
+  const startPicker = flatpickr("#start_date", {
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: [
+      function(date) {
+        return !disableSundays(date);
+      }
+    ],
+    onChange: function(selectedDates, dateStr) {
+      endPicker.set('minDate', dateStr); // ensure end date ≥ start date
+      updateDayCount();
+    }
+  });
+
+  // Initialize Flatpickr for End Date
+  const endPicker = flatpickr("#end_date", {
+    dateFormat: "Y-m-d",
+    minDate: "today",
+    disable: [
+      function(date) {
+        return !disableSundays(date);
+      }
+    ],
+    onChange: updateDayCount
+  });
+
+  // Update total days
+  function updateDayCount() {
+    const start = startPicker.selectedDates[0];
+    const end = endPicker.selectedDates[0];
+
+    if (start && end && end >= start) {
+      const total = calculateDays(start, end);
+      dayCount.textContent = `Total Days: ${total}`;
+    } else {
+      dayCount.textContent = "Total Days: 0";
+    }
+  }
+</script>
+
 </body>
 </html>
