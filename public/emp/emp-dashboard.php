@@ -13,7 +13,7 @@ try {
 
 // Check if user is logged in and is an employee
 if (!isset($_SESSION['user_id']) || $_SESSION['position'] !== 'employee') {
-    header("Location: login.php");
+    header("Location: ../../login.php");
     exit;
 }
 
@@ -82,13 +82,19 @@ try {
 <body>
 <div class="layout">
     <aside class="sidebar">
-        <h2>LMS</h2>
+<div class="user-profile">
+    <h2>LMS</h2>
+
+    <div class="avatar">
+        <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
+    </div>
+    <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
+</div>
         <nav>
             <ul>
-                <li><a href="dashboard.php" class="active">Dashboard</a></li>
+                <li><a href="emp-dashboard.php" class="active">Dashboard</a></li>
                 <li><a href="apply-leave.php">Apply Leave</a></li>
                 <li><a href="my-leaves.php">My Leaves</a></li>
-                <li><a href="profile.php">Profile</a></li>
                 <li><a href="../../logout.php">Logout</a></li>
             </ul>
         </nav>
@@ -97,10 +103,11 @@ try {
         </div>
     </aside>
     <div class="main-content">
-        <header>
+        <div class="container">
+                    <header>
             <h1>Teraju Leave Management System</h1>
         </header>
-        <div class="container">
+
             <h2>Welcome, <?php echo htmlspecialchars($user['name']); ?>!</h2> 
             <p>Here’s a summary of your leave activity.</p>
 

@@ -5,7 +5,7 @@ CREATE TABLE users (
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    position VARCHAR(20) DEFAULT 'employee',
+    position VARCHAR(20) DEFAULT 'employee'
 );
 
 CREATE TABLE leave_types (

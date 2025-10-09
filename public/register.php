@@ -49,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <style>/* Reset & Base Styles */
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Roboto', sans-serif; }
 body { background: linear-gradient(135deg, #e0e7ff, #eef2f7); color: #2c3e50; line-height: 1.6; min-height: 100vh; }
+main { width: 100%; display: flex; justify-content: center; }
 
 /* Registration Page */
 .reg-container { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
