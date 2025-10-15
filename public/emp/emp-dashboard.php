@@ -17,19 +17,30 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] !== 'employee') {
     exit;
 }
 
-// 1. Query for Leave Balance (sum remaining for all leave types, or just annual if you want)
+// Query for Annual Leave Balance only
 try {
     $stmt = $pdo->prepare(
-        "SELECT COALESCE(SUM(lt.annual_limit - lb.used_days), 0) AS leaveBalance
+        "SELECT 
+            COALESCE(lt.default_limit - lb.used_days, lt.default_limit) AS annualLeaveBalance
          FROM leave_balances lb
          JOIN leave_types lt ON lb.leave_type_id = lt.id
-         WHERE lb.user_id = ? AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)"
+         WHERE lb.user_id = ? 
+           AND lt.name = 'Annual Leave'
+           AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)"
     );
     $stmt->execute([$user_id]);
-    $leaveBalance = $stmt->fetchColumn();
+    $annualLeaveBalance = $stmt->fetchColumn();
+
+    // If no record exists yet, fall back to default limit
+    if ($annualLeaveBalance === false) {
+        $stmt = $pdo->prepare("SELECT default_limit FROM leave_types WHERE name = 'Annual Leave'");
+        $stmt->execute();
+        $annualLeaveBalance = $stmt->fetchColumn() ?? 0;
+    }
 } catch (PDOException $e) {
-    $leaveBalance = 0;
+    $annualLeaveBalance = 0;
 }
+
 
 // 2. Query for Pending Requests Count
 try {
@@ -95,7 +106,7 @@ try {
                 <li><a href="emp-dashboard.php" class="active">Dashboard</a></li>
                 <li><a href="apply-leave.php">Apply Leave</a></li>
                 <li><a href="my-leaves.php">My Leaves</a></li>
-                <li><a href="../../logout.php">Logout</a></li>
+                <li><a href="../logout.php">Logout</a></li>
             </ul>
         </nav>
         <div class="sidebar-footer">
@@ -114,8 +125,8 @@ try {
             <main>
                 <div class="dashboard-cards">
                     <div class="card dashboard-card">
-                        <h3>Leave Balance</h3>
-                        <p><?php echo $leaveBalance; ?> days</p>
+                        <h3> Annual Leave Balance</h3>
+                        <p><?php echo $annualLeaveBalance; ?> days</p>
                     </div>
                     <div class="card dashboard-card">
                         <h3>Pending Requests</h3>

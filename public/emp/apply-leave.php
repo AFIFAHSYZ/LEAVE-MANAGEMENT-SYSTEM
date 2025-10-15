@@ -80,7 +80,7 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
                 <li><a href="emp-dashboard.php">Dashboard</a></li>
                 <li><a href="apply-leave.php" class="active">Apply Leave</a></li>
                 <li><a href="my-leaves.php">My Leaves</a></li>
-                <li><a href="../../logout.php">Logout</a></li>
+                <li><a href="../logout.php">Logout</a></li>
             </ul>
         </nav>
         <div class="sidebar-footer">

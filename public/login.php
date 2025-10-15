@@ -31,7 +31,7 @@ if ($user) {
                 header("Location: manager/manager-dashboard.php");
                 break;
             case 'hr':
-                header("Location: hr/hr-dashboard.php");
+                header("Location: HR/hr-dashboard.php");
                 break;
             default:
                 header("Location: emp/emp-dashboard.php");

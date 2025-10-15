@@ -128,7 +128,7 @@ main { width: 100%; display: flex; justify-content: center; }
                         <select id="position" name="position">
                             <option value="employee" <?php if (isset($position) && $position == "employee") echo "selected"; ?>>Employee</option>
                             <option value="manager" <?php if (isset($position) && $position == "manager") echo "selected"; ?>>Manager</option>
-                            <option value="admin" <?php if (isset($position) && $position == "admin") echo "selected"; ?>>Admin</option>
+                            <option value="admin" <?php if (isset($position) && $position == "hr") echo "selected"; ?>>HR</option>
                         </select>
                     </div>
                     <button type="submit" class="btn-full">Register</button>
