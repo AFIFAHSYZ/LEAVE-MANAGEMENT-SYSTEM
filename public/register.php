@@ -15,8 +15,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $position = $_POST['position'] ?? 'employee';
 
-    if (!$name || !$email || !$password) {
-        $error = "Name, email, and password are required!";
+    // Handle Race
+    $race = $_POST['race'] ?? '';
+    if ($race === 'other') {
+        $race_other = clean_input($_POST['race_other'] ?? '');
+        $race = $race_other ?: 'Other';
+    }
+
+    // Handle Religion
+    $religion = $_POST['religion'] ?? '';
+    if ($religion === 'other') {
+        $religion_other = clean_input($_POST['religion_other'] ?? '');
+        $religion = $religion_other ?: 'Other';
+    }
+
+    if (!$name || !$email || !$password || !$race || !$religion) {
+        $error = "All fields are required!";
     } else {
         try {
             // Check if email already exists
@@ -28,9 +42,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Hash the password
                 $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
-                // Insert user
-                $stmt = $pdo->prepare("INSERT INTO users (name, email, password, position) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$name, $email, $passwordHash, $position]);
+                // Insert user into DB
+                $stmt = $pdo->prepare("INSERT INTO users (name, email, password, position, race, religion) VALUES (?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$name, $email, $passwordHash, $position, $race, $religion]);
+
                 $registrationSuccess = true;
             }
         } catch (PDOException $e) {
@@ -39,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -131,6 +147,46 @@ main { width: 100%; display: flex; justify-content: center; }
                             <option value="admin" <?php if (isset($position) && $position == "hr") echo "selected"; ?>>HR</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="race">Race</label>
+                        <select id="race" name="race" onchange="toggleOther('race')">
+                            <option value="malay" <?php if (isset($race) && $race == "malay") echo "selected"; ?>>Malay</option>
+                            <option value="chinese" <?php if (isset($race) && $race == "chinese") echo "selected"; ?>>Chinese</option>
+                            <option value="indian" <?php if (isset($race) && $race == "indian") echo "selected"; ?>>Indian</option>
+                            <option value="other" <?php if (isset($race) && $race == "other") echo "selected"; ?>>Other</option>
+                        </select>
+                        <input type="text" id="race_other" name="race_other" placeholder="Please specify" style="display:none;" value="<?php echo isset($race_other) ? $race_other : ''; ?>">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="religion">Religion</label>
+                        <select id="religion" name="religion" onchange="toggleOther('religion')">
+                            <option value="islam" <?php if (isset($religion) && $religion == "islam") echo "selected"; ?>>Islam</option>
+                            <option value="buddhism" <?php if (isset($religion) && $religion == "buddhism") echo "selected"; ?>>Buddhism</option>
+                            <option value="christianity" <?php if (isset($religion) && $religion == "christianity") echo "selected"; ?>>Christianity</option>
+                            <option value="hinduism" <?php if (isset($religion) && $religion == "hinduism") echo "selected"; ?>>Hinduism</option>
+                            <option value="other" <?php if (isset($religion) && $religion == "other") echo "selected"; ?>>Other</option>
+                        </select>
+                        <input type="text" id="religion_other" name="religion_other" placeholder="Please specify" style="display:none;" value="<?php echo isset($religion_other) ? $religion_other : ''; ?>">
+                    </div>
+
+                    <script>
+                    function toggleOther(field) {
+                        const select = document.getElementById(field);
+                        const otherInput = document.getElementById(field + '_other');
+                        if (select.value === 'other') {
+                            otherInput.style.display = 'block';
+                        } else {
+                            otherInput.style.display = 'none';
+                        }
+                    }
+
+                    // To show "Other" input if already selected (for edit forms)
+                    window.onload = function() {
+                        toggleOther('race');
+                        toggleOther('religion');
+                    }
+                    </script>
                     <button type="submit" class="btn-full">Register</button>
                 </form>
                 <div class="form-footer">

@@ -100,7 +100,7 @@ $types = $pdo->query("SELECT * FROM leave_types ORDER BY id ASC")->fetchAll(PDO:
                 <li><a href="hr-dashboard.php">Dashboard</a></li>
                 <li><a href="leave-types.php" class="active">Leave Types</a></li>
                 <li><a href="tenure-policy.php">Tenure Policy</a></li>
-                <li><a href="../../logout.php">Logout</a></li>
+                <li><a href="../logout.php">Logout</a></li>
             </ul>
         </nav>
         <div class="sidebar-footer">&copy; <?= date('Y'); ?> Teraju LMS</div>
@@ -140,7 +140,7 @@ $types = $pdo->query("SELECT * FROM leave_types ORDER BY id ASC")->fetchAll(PDO:
                             <td><?= htmlspecialchars($t['name']) ?></td>
                             <td><?= $t['default_limit'] ?></td>
                             <td>
-                                <form method="POST" style="display:inline;">
+                                <form method="POST" class="form-inline">
                                     <input type="hidden" name="id" value="<?= $t['id'] ?>">
                                     <input type="text" name="name" value="<?= htmlspecialchars($t['name']) ?>" required>
                                     <input type="number" name="default_limit" value="<?= $t['default_limit'] ?>" required>

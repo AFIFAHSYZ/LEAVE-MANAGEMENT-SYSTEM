@@ -113,7 +113,7 @@ $policies = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
                 <li><a href="hr-dashboard.php">Dashboard</a></li>
                 <li><a href="leave-types.php">Leave Types</a></li>
                 <li><a href="tenure-policy.php" class="active">Tenure Policy</a></li>
-                <li><a href="../../logout.php">Logout</a></li>
+                <li><a href="../logout.php">Logout</a></li>
             </ul>
         </nav>
         <div class="sidebar-footer">&copy; <?= date('Y'); ?> Teraju LMS</div>

@@ -118,33 +118,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     .stat-card { background: #f8fafc; border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
     .stat-card h3 { margin: 0; font-size: 2em; color: #2563eb; }
     .stat-card p { color: #475569; margin-top: 6px; }
-
     .filter-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
     .filter-grid select, .filter-grid input[type="date"] { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
     .btn-approve { background: #16a34a; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
     .btn-reject { background: #dc2626; color: #fff; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+    .sidebar ul li {position: relative;}
+    .sidebar ul li a {display: flex;justify-content: space-between; align-items: center; padding: 10px 20px;font-size: 0.9rem; color: #fff; text-decoration: none;}
+    .sidebar ul li a .arrow {font-size: 0.8rem; transition: transform 0.3s ease;}
+    .sidebar ul li.active > a .arrow {transform: rotate(180deg);}
+    .sidebar ul li .dropdown-menu {display: none;flex-direction: column;background: #1c2942;padding-left: 0;}
+    .sidebar ul li.active .dropdown-menu {display: flex;}
+    .sidebar ul li .dropdown-menu li a {padding: 8px 30px;font-size: 0.85rem;}
   </style>
 </head>
 <body>
 <div class="layout">
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="user-profile">
-            <h2>LMS</h2>
-            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
-            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-        </div>
-        <nav>
-            <ul>
-                <li><a href="hr-dashboard.php" class="active">Dashboard</a></li>
+<aside class="sidebar">
+<div class="user-profile">
+    <h2>LMS</h2>
+
+    <div class="avatar">
+        <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
+    </div>
+    <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
+</div>
+    <nav>
+        <ul>
+            <li><a href="hr-dashboard.php">Dashboard</a></li>
+
+            <!-- Leave Management Dropdown -->
+            <li class="has-dropdown">
+            <a href="javascript:void(0)">
+                HR Management
+                <span class="arrow">⮟</span>
+            </a>
+            <ul class="dropdown-menu">
                 <li><a href="leave-types.php">Leave Types</a></li>
                 <li><a href="tenure-policy.php">Tenure Policy</a></li>
-                <li><a href="../../logout.php">Logout</a></li>
             </ul>
-        </nav>
-        <div class="sidebar-footer">&copy; <?php echo date('Y'); ?> Teraju LMS</div>
-    </aside>
+            </li>
+
+            <!-- Employee Management Dropdown -->
+            <li class="has-dropdown">
+            <a href="javascript:void(0)">
+            Employee Management    <span class="arrow">⮟</span>
+            </a>
+                <ul class="dropdown-menu">
+                    <li><a href="employees.php">Employees</a></li>
+                </ul>
+            </li>  
+
+            <li><a href="../logout.php">Logout</a></li>
+        </ul>
+    </nav>
+
+    <div class="sidebar-footer">&copy; <?= date('Y'); ?> Teraju LMS</div>
+</aside>
+
 
     <!-- Header -->
     <header>
@@ -212,5 +243,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </main>
 </div>
+<script>
+const dropdowns = document.querySelectorAll('.has-dropdown > a');
+
+dropdowns.forEach(drop => {
+    drop.addEventListener('click', () => {
+        const parent = drop.parentElement;
+        parent.classList.toggle('active'); // show/hide submenu
+    });
+});
+
+</script>
 </body>
 </html>

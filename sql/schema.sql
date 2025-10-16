@@ -54,5 +54,8 @@ CREATE TABLE leave_balances (
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     leave_type_id INT REFERENCES leave_types(id),
     year INT DEFAULT EXTRACT(YEAR FROM CURRENT_DATE),
-    used_days INT DEFAULT 0
+    used_days INT DEFAULT 0,
+    carry_forward INT DEFAULT 0,
+    total_available INT GENERATED ALWAYS AS (carry_forward + entitled_days - used_days) STORED
 );
+
