@@ -102,22 +102,7 @@ $policies = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 <body>
 <div class="layout">
 
-    <aside class="sidebar">
-        <div class="user-profile">
-            <h2>LMS</h2>
-            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
-            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-        </div>
-        <nav>
-            <ul>
-                <li><a href="hr-dashboard.php">Dashboard</a></li>
-                <li><a href="leave-types.php">Leave Types</a></li>
-                <li><a href="tenure-policy.php" class="active">Tenure Policy</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-        <div class="sidebar-footer">&copy; <?= date('Y'); ?> Teraju LMS</div>
-    </aside>
+  <?php include 'sidebar.php'; ?>
     <header>
         <h1>Leave Management System</h1>
     </header>
@@ -172,5 +157,6 @@ $policies = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </main>
 </div>
+<script src="../../assets/js/sidebar.js"></script> 
 </body>
 </html>

@@ -113,21 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <div class="layout">
 
     <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="user-profile">
-            <h2>LMS</h2>
-            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
-            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-        </div>
-        <nav>
-            <ul>
-                <li><a href="manager-dashboard.php">Dashboard</a></li>
-                <li><a href="team-leaves.php" class="active">Team Leaves</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-        <div class="sidebar-footer">&copy; <?php echo date('Y'); ?> Teraju LMS</div>
-    </aside>
+  <?php include 'sidebar.php'; ?>
         <header>
         <h1>Team Leave Requests</h1>
     </header>
@@ -210,5 +196,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </main>
 </div>
+<script src="../../assets/js/sidebar.js"></script> 
 </body>
 </html>
