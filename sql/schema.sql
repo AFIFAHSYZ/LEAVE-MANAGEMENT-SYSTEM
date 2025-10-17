@@ -59,3 +59,10 @@ CREATE TABLE leave_balances (
     total_available INT GENERATED ALWAYS AS (carry_forward + entitled_days - used_days) STORED
 );
 
+CREATE TABLE public_holidays (
+    id SERIAL PRIMARY KEY,
+    holiday_date DATE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    category VARCHAR(50) DEFAULT 'National', -- National, Muslim, Chinese, Indian, State
+    state VARCHAR(50) DEFAULT NULL
+);
