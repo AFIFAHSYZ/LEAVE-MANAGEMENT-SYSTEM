@@ -134,49 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <body>
 <div class="layout">
 
-<aside class="sidebar">
-<div class="user-profile">
-    <h2>LMS</h2>
-
-    <div class="avatar">
-        <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
-    </div>
-    <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-</div>
-    <nav>
-        <ul>
-            <li><a href="hr-dashboard.php">Dashboard</a></li>
-
-            <!-- Leave Management Dropdown -->
-            <li class="has-dropdown">
-            <a href="javascript:void(0)">
-                HR Management
-                <span class="arrow">⮟</span>
-            </a>
-            <ul class="dropdown-menu">
-                <li><a href="leave-types.php">Leave Types</a></li>
-                <li><a href="tenure-policy.php">Tenure Policy</a></li>
-            </ul>
-            </li>
-
-            <!-- Employee Management Dropdown -->
-            <li class="has-dropdown">
-            <a href="javascript:void(0)">
-            Employee Management    <span class="arrow">⮟</span>
-            </a>
-                <ul class="dropdown-menu">
-                    <li><a href="employees.php">Employees</a></li>
-                </ul>
-            </li>  
-
-            <li><a href="../logout.php">Logout</a></li>
-        </ul>
-    </nav>
-
-    <div class="sidebar-footer">&copy; <?= date('Y'); ?> Teraju LMS</div>
-</aside>
-
-
+  <?php include 'sidebar.php'; ?>
     <!-- Header -->
     <header>
         <h1>HR Dashboard</h1>
@@ -243,16 +201,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         </div>
     </main>
 </div>
-<script>
-const dropdowns = document.querySelectorAll('.has-dropdown > a');
-
-dropdowns.forEach(drop => {
-    drop.addEventListener('click', () => {
-        const parent = drop.parentElement;
-        parent.classList.toggle('active'); // show/hide submenu
-    });
-});
-
-</script>
+<script src="../../assets/js/sidebar.js"></script> 
 </body>
 </html>
