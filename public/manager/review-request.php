@@ -74,6 +74,13 @@ if ($request['start_date'] && $request['end_date']) {
 
 // 🟢 Handle approval/rejection
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+
+    // Prevent editing once approved/rejected
+    if ($request['status'] !== 'pending') {
+        header("Location: review-request.php?id=$id&msg=" . urlencode("Action not allowed. Leave request already processed."));
+        exit();
+    }
+
     $req_id = $_POST['leave_id'];
     $action = $_POST['action'];
     $newStatus = ($action === 'approved') ? 'approved' : 'rejected';
@@ -137,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     .back-link {display: inline-block; margin-bottom: 15px; text-decoration: none; color: #2563eb; font-weight: 600; background: #e0f2fe; padding: 6px 12px; border-radius: 6px;}
     .back-link:hover {background: #bfdbfe; color: #1e40af;}
     .status-badge {padding: 4px 10px; border-radius: 6px; font-weight: 600;}
+    .note {margin-top: 10px; color: #475569; font-size: 0.9rem;}
 </style>
 <script>
 function confirmAction(type) {
@@ -193,17 +201,22 @@ function confirmAction(type) {
                     </span>
                 </div>
                 <?php if ($request['approved_by_name']): ?>
-                    <div class="label">Approved By:</div><div><?= htmlspecialchars($request['approved_by_name']) ?></div>
+                    <div class="label">Approved/Rejected By:</div>
+                    <div><?= htmlspecialchars($request['approved_by_name']) ?> on <?= htmlspecialchars($request['decision_date']) ?></div>
                 <?php endif; ?>
                 <div class="label">Reason:</div><div><?= htmlspecialchars($request['reason'] ?: '-') ?></div>
             </div>
             <br>
 
+            <?php if (strtolower($request['status']) === 'pending'): ?>
             <form method="POST" action="review-request.php?id=<?= $request['id'] ?>">
                 <input type="hidden" name="leave_id" value="<?= $request['id'] ?>">
                 <button type="submit" name="action" value="approved" class="btn-approve" onclick="return confirmAction('approve')">Approve</button>
                 <button type="submit" name="action" value="rejected" class="btn-reject" onclick="return confirmAction('reject')">Reject</button>
             </form>
+            <?php else: ?>
+                <p class="note">✅ This leave request has already been <strong><?= htmlspecialchars($request['status']) ?></strong> and cannot be modified.</p>
+            <?php endif; ?>
         </div>
     </main>
 </div>

@@ -157,23 +157,7 @@ $leaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="layout">
 
     <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="user-profile">
-            <h2>LMS</h2>
-            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
-            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-        </div>
-        <nav>
-            <ul>
-                <li><a href="emp-dashboard.php">Dashboard</a></li>
-                <li><a href="apply-leave.php">Apply Leave</a></li>
-                <li><a href="my-leaves.php" class="active">My Leaves</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-        <div class="sidebar-footer">&copy; <?php echo date('Y'); ?> Teraju LMS</div>
-    </aside>
-
+  <?php include 'sidebar.php'; ?>
     <header>
         <h1>My Leave Records</h1>
     </header>
@@ -275,6 +259,7 @@ $leaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <footer>
   <p>&copy; <?= date('Y'); ?> Teraju HR System</p>
 </footer>
+<script src="../../assets/js/sidebar.js"></script>
 
 </body>
 </html>

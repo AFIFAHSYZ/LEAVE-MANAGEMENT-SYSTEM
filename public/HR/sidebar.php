@@ -20,6 +20,9 @@
         <a href="javascript:void(0)">Leave Requests<span class="arrow">›</span></a>
         <ul class="dropdown-menu">
           <li><a href="all-requests.php">All Requests</a></li>
+          <li><a href="hr-request.php">Request Leaves</a></li>
+          <li><a href="hr-leaves.php">My Request History</a></li>
+
         </ul>
       </li>
 
