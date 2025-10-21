@@ -81,6 +81,13 @@ $sql = "
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+// 🔔 Check for pending requests
+$pendingCountStmt = $pdo->query("SELECT COUNT(*) FROM leave_requests WHERE status = 'pending'");
+$pendingCount = $pendingCountStmt->fetchColumn();
+
+
 ?>
 
 <!DOCTYPE html>
@@ -108,6 +115,9 @@ $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     .btn-reject { background:#ef4444; }
     .btn-approve:hover { background:#059669; }
     .btn-reject:hover { background:#dc2626; }
+    .btn-review {background: #f59e0b;color: #fff;border: none;padding: 6px 10px;border-radius: 6px;text-decoration: none;font-size: 0.85rem; cursor: pointer;}
+    .btn-review:hover {background: #d97706;}
+    .alert-warning {background: #fff3cd;color: #856404;border: 1px solid #ffeeba;padding: 10px 15px;border-radius: 6px;margin-bottom: 15px;font-weight: 500;}
   </style>
 </head>
 <body>
@@ -139,6 +149,11 @@ $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Main Content -->
     <main class="main-content">
+        <?php if ($pendingCount > 0): ?>
+        <div class="alert alert-warning">
+            ⚠️ There are <strong><?= $pendingCount ?></strong> pending leave request<?= $pendingCount > 1 ? 's' : '' ?> awaiting your action.
+        </div>
+        <?php endif; ?>
 
         <!-- Stats -->
         <div class="dashboard-stats">
@@ -210,15 +225,14 @@ $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td class="status <?= strtolower($r['status']); ?>"><?= ucfirst($r['status']); ?></td>
                                 <td><?= date('Y-m-d', strtotime($r['applied_at'])); ?></td>
                                 <td class="table-actions">
-                                    <?php if ($r['status'] === 'pending'): ?>
-                                        <form method="POST">
-                                            <input type="hidden" name="leave_id" value="<?= $r['id'] ?>">
-                                            <button type="submit" name="action" value="approved" class="btn-approve">Approve</button>
-                                            <button type="submit" name="action" value="rejected" class="btn-reject">Reject</button>
-                                        </form>
-                                    <?php else: ?>
-                                        <span style="color:#94a3b8;">—</span>
-                                    <?php endif; ?>
+                                <?php if ($r['status'] === 'pending'): ?>
+                                    <form method="POST">
+                                        <input type="hidden" name="leave_id" value="<?= $r['id'] ?>">
+                                        <a href="review-request.php?id=<?= $r['id'] ?>" class="btn-review">Review</a>
+                                    </form>
+                                <?php else: ?>
+                                    <span style="color:#94a3b8;">—</span>
+                                <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

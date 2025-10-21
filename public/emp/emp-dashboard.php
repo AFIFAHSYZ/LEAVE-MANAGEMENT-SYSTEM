@@ -16,18 +16,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['position'] !== 'employee') {
     header("Location: ../../login.php");
     exit;
 }
-
 // Query for Annual Leave Balance only
 try {
-    $stmt = $pdo->prepare(
-        "SELECT 
-            COALESCE(lt.default_limit - lb.used_days, lt.default_limit) AS annualLeaveBalance
-         FROM leave_balances lb
-         JOIN leave_types lt ON lb.leave_type_id = lt.id
-         WHERE lb.user_id = ? 
-           AND lt.name = 'Annual Leave'
-           AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)"
-    );
+    $stmt = $pdo->prepare("
+        SELECT 
+            (COALESCE(lt.default_limit, 0) + COALESCE(lb.carry_forward, 0) - COALESCE(lb.used_days, 0)) AS annualLeaveBalance
+        FROM leave_balances lb
+        JOIN leave_types lt ON lb.leave_type_id = lt.id
+        WHERE lb.user_id = ?
+          AND lt.name = 'Annual Leave'
+          AND lb.year = EXTRACT(YEAR FROM CURRENT_DATE)
+    ");
     $stmt->execute([$user_id]);
     $annualLeaveBalance = $stmt->fetchColumn();
 

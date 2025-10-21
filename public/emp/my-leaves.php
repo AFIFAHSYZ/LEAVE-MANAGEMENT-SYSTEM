@@ -1,6 +1,8 @@
 <?php
 session_start();
 require_once '../../config/conn.php';
+require_once '../function.php';
+
 
 // Redirect if not logged in
 if (!isset($_SESSION['user_id'])) {
@@ -24,8 +26,9 @@ $stats_sql = "
         lt.id,
         lt.name AS leave_type,
         lt.default_limit,
+        COALESCE(lb.carry_forward, 0) AS carry_forward,
         COALESCE(lb.used_days, 0) AS used_days,
-        (lt.default_limit - COALESCE(lb.used_days, 0)) AS remaining_days
+        (lt.default_limit + COALESCE(lb.carry_forward, 0) - COALESCE(lb.used_days, 0)) AS remaining_days
     FROM leave_types lt
     LEFT JOIN leave_balances lb 
         ON lb.leave_type_id = lt.id 
@@ -36,6 +39,49 @@ $stats_stmt = $pdo->prepare($stats_sql);
 $stats_stmt->bindParam(':user_id', $user_id);
 $stats_stmt->execute();
 $leave_stats = $stats_stmt->fetchAll(PDO::FETCH_ASSOC);
+// Loop through all leave types for this user
+$stmt = $pdo->query("SELECT id FROM leave_types");
+$leave_types = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+foreach ($leave_types as $leave_type_id) {
+    $entitled = calculateEntitledDays($pdo, $user_id, $leave_type_id);
+
+    // Upsert leave balance for current year
+// Check if balance exists
+$stmt = $pdo->prepare("
+    SELECT id FROM leave_balances 
+    WHERE user_id = :user AND leave_type_id = :type AND year = EXTRACT(YEAR FROM CURRENT_DATE)
+");
+$stmt->execute([
+    ':user' => $user_id,
+    ':type' => $leave_type_id
+]);
+$exists = $stmt->fetchColumn();
+
+if ($exists) {
+    // Update
+    $stmt = $pdo->prepare("
+        UPDATE leave_balances
+        SET entitled_days = :entitled
+        WHERE id = :id
+    ");
+    $stmt->execute([
+        ':entitled' => $entitled,
+        ':id' => $exists
+    ]);
+} else {
+    // Insert
+    $stmt = $pdo->prepare("
+        INSERT INTO leave_balances (user_id, leave_type_id, year, entitled_days, carry_forward, used_days)
+        VALUES (:user, :type, EXTRACT(YEAR FROM CURRENT_DATE), :entitled, 0, 0)
+    ");
+    $stmt->execute([
+        ':user' => $user_id,
+        ':type' => $leave_type_id,
+        ':entitled' => $entitled
+    ]);
+}
+}
 
 // =====================
 // Handle Filters
@@ -156,11 +202,16 @@ $leaves = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php foreach ($leave_stats as $stat): ?>
                 <div class="stat-card">
                     <h3><?php echo htmlspecialchars($stat['leave_type']); ?></h3>
-                    <div class="numbers"
-                        style="color: <?php echo ($stat['remaining_days'] <= 3) ? '#ef4444' : '#3b82f6'; ?>">
-                        <?php echo (int)$stat['remaining_days']; ?> / <?php echo (int)$stat['default_limit']; ?> Days
-                    </div>
-                    <p>Used: <?php echo (int)$stat['used_days']; ?> days</p>
+<div class="numbers"
+    style="color: <?= ($stat['remaining_days'] <= 3) ? '#ef4444' : '#3b82f6'; ?>">
+    <?= (int)$stat['remaining_days']; ?> / <?= (int)$stat['default_limit'] + (int)$stat['carry_forward']; ?> Days
+</div>
+<p>
+    Used: <?= (int)$stat['used_days']; ?> days
+    <?php if ($stat['carry_forward'] > 0): ?>
+        <br><small style="color:#64748b;">(Includes <?= (int)$stat['carry_forward']; ?> carried forward)</small>
+    <?php endif; ?>
+</p>
                 </div>
             <?php endforeach; ?>
         </div>

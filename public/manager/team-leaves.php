@@ -62,16 +62,21 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// 🔔 Check for pending requests
+$pendingCountStmt = $pdo->query("SELECT COUNT(*) FROM leave_requests WHERE status = 'pending'");
+$pendingCount = $pendingCountStmt->fetchColumn();
+
 // 🗂 Fetch leave types for filters
 $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
 
-// 🟢 Handle approval/rejection
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    $req_id = $_POST['request_id'];
+$req_id = $_POST['leave_id'];
     $action = $_POST['action'];
 
-    $newStatus = ($action === 'approve') ? 'approved' : 'rejected';
-    $sql = "UPDATE leave_requests SET status = :status, approved_by = :manager, decision_date = NOW() WHERE id = :id";
+$newStatus = ($action === 'approved') ? 'approved' : 'rejected';
+    $sql = "UPDATE leave_requests 
+            SET status = :status, approved_by = :manager, decision_date = NOW() 
+            WHERE id = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         ':status' => $newStatus,
@@ -79,9 +84,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         ':id' => $req_id
     ]);
 
+    // ✅ If approved, deduct from leave balance
+    if ($newStatus === 'approved') {
+        $q = $pdo->prepare("
+            SELECT user_id, leave_type_id, start_date, end_date
+            FROM leave_requests WHERE id = :id
+        ");
+        $q->execute([':id' => $req_id]);
+        $req = $q->fetch(PDO::FETCH_ASSOC);
+
+        if ($req) {
+            $daysTaken = (strtotime($req['end_date']) - strtotime($req['start_date'])) / (60*60*24) + 1;
+
+            // Exclude public holidays automatically (optional)
+            $phStmt = $pdo->prepare("
+                SELECT COUNT(*) FROM public_holidays 
+                WHERE holiday_date BETWEEN :start AND :end
+            ");
+            $phStmt->execute([
+                ':start' => $req['start_date'],
+                ':end' => $req['end_date']
+            ]);
+            $holidays = $phStmt->fetchColumn();
+
+            $effectiveDays = max(0, $daysTaken - $holidays);
+
+            // Update leave balance
+            $b = $pdo->prepare("
+                SELECT id,  carry_forward, used_days
+                FROM leave_balances
+                WHERE user_id = :uid 
+                  AND leave_type_id = :ltid
+                  AND year = EXTRACT(YEAR FROM CURRENT_DATE)
+            ");
+            $b->execute([
+                ':uid' => $req['user_id'],
+                ':ltid' => $req['leave_type_id']
+            ]);
+            $balance = $b->fetch(PDO::FETCH_ASSOC);
+
+            if ($balance) {
+                $used = $balance['used_days'] + $effectiveDays;
+
+                $u = $pdo->prepare("
+                    UPDATE leave_balances
+                    SET used_days = :used
+                    WHERE id = :id
+                ");
+                $u->execute([
+                    ':used' => $used,
+                    ':id' => $balance['id']
+                ]);
+            }
+        }
+    }
+
     header("Location: team-leaves.php?msg=" . urlencode("Leave request $newStatus successfully!"));
     exit();
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -91,21 +152,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     <title>Team Leaves | Manager Dashboard</title>
     <link rel="stylesheet" href="../../assets/css/style.css">
     <style>    
-    .filter-form {
-        display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
-        align-items: flex-end; background: #fff; padding: 15px;
-        border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-    }
+    .filter-form {display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;align-items: flex-end; background: #fff; padding: 15px;border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.05); }
     .filter-form label { display: block; font-size: 0.9rem; color: #334155; margin-bottom: 5px; }
-    .filter-form input, .filter-form select {
-        padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1;
-        font-size: 0.9rem; width: 150px;
-    }
-    .filter-form button {
-        padding: 9px 16px; background: #3b82f6; border: none; border-radius: 8px;
-        color: #fff; font-weight: 600; cursor: pointer;
-    }
+    .filter-form input, .filter-form select { padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.9rem; width: 150px; }
+    .filter-form button {     padding: 9px 16px; background: #3b82f6; border: none; border-radius: 8px;  color: #fff; font-weight: 600; cursor: pointer; }
     .filter-form button:hover { background: #2563eb; }
+    .table-actions form { display:inline; margin:0 3px; }
+    .btn-approve, .btn-reject { border:none; padding:6px 10px; border-radius:6px; color:#fff; cursor:pointer; font-size:0.85rem; }
+    .btn-approve { background:#10b981; }
+    .btn-reject { background:#ef4444; }
+    .btn-approve:hover { background:#059669; }
+    .btn-reject:hover { background:#dc2626; }
+    .btn-review {background: #f59e0b;color: #fff;border: none;padding: 6px 10px;border-radius: 6px;text-decoration: none;font-size: 0.85rem; cursor: pointer;}
+    .btn-review:hover {background: #d97706;}
 
 </style>
 </head>
@@ -113,12 +172,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 <div class="layout">
 
     <!-- Sidebar -->
-  <?php include 'sidebar.php'; ?>
+    <aside class="sidebar">
+        <div class="user-profile">
+            <h2>LMS</h2>
+            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
+            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
+            <p style="font-size:0.85rem; color:#64748b;">Manager</p>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="manager-dashboard.php" >Dashboard</a></li>
+                <li><a href="team-leaves.php" class="active">Team Leaves</a></li>
+                <li><a href="../logout.php">Logout</a></li>
+            </ul>
+        </nav>
+        <div class="sidebar-footer">&copy; <?php echo date('Y'); ?> Teraju LMS</div>
+    </aside>
+
         <header>
         <h1>Team Leave Requests</h1>
     </header>
-
-
     <!-- Main -->
     <main class="main-content">
         <div class="card">
@@ -181,11 +254,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                                 <?php if ($r['status'] === 'pending'): ?>
                                     <form method="POST" style="display:inline;">
                                         <input type="hidden" name="request_id" value="<?= $r['id'] ?>">
-                                        <button type="submit" name="action" value="approve" class="btn-approve">Approve</button>
-                                        <button type="submit" name="action" value="reject" class="btn-reject">Reject</button>
-                                    </form>
+                                  </form>
                                 <?php else: ?>
-                                    <em>-</em>
+                                        <a href="review-request.php?id=<?= $r['id'] ?>" class="btn-review">Review</a>
                                 <?php endif; ?>
                             </td>
                         </tr>
