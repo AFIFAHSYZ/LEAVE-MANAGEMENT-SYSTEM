@@ -122,7 +122,7 @@ if ($user) {
 
             <p class="form-footer">
                 Don’t have an account? <a href="register.php">Register here</a>.<br>
-                Forgot password? <a href="register.php">Click here</a>.
+                Forgot password? <a href="forgot-pass.php">Click here</a>.
             </p>
         </div>
     </div>
