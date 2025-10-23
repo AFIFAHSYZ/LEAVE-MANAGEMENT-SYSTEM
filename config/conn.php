@@ -2,7 +2,7 @@
 $host = 'localhost';
 $dbname = 'teraju';
 $user = 'postgres';
-$password = '####';
+$password = 'abc123';
 try {
     $dsn = "pgsql:host=$host;dbname=$dbname";
     $pdo = new PDO($dsn, $user, $password);
