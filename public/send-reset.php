@@ -46,12 +46,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 5️⃣ Send email
         $mail = new PHPMailer(true);
         $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-           $mail->Username   = 'afifahsyazahda@gmail.com';   // ✅ your Gmail
-            $mail->Password   = '#### #### ####';        // ✅ Gmail App Password
+$config = include '../config/env.php';
+
+$mail->Username = $config['SMTP_USER'];
+$mail->Password = $config['SMTP_PASS'];
+$mail->Host     = $config['SMTP_HOST'];
+$mail->Port     = $config['SMTP_PORT'];
                     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
 
         $mail->setFrom('your_email@gmail.com', 'Leave Management System');
         $mail->addAddress($email);
