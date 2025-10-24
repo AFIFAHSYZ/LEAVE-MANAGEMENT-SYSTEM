@@ -105,6 +105,7 @@ try {
                 <li><a href="emp-dashboard.php" class="active">Dashboard</a></li>
                 <li><a href="apply-leave.php">Apply Leave</a></li>
                 <li><a href="my-leaves.php">My Leaves</a></li>
+                <li><a href="public-holiday.php">Public Holiday</a></li>
                 <li><a href="../logout.php">Logout</a></li>
             </ul>
         </nav>
