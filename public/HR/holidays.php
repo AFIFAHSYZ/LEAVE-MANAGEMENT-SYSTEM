@@ -43,22 +43,19 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
   <title>Public Holidays | HR Dashboard</title>
   <link rel="stylesheet" href="../../assets/css/style.css">
       <style>    
-    .filter-form {
-        display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;
-        align-items: flex-end; background: #fff; padding: 15px;
-        border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.05);
-    }
+    .filter-form {display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: flex-end; background: #fff; padding: 15px;border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.05);}
     .filter-form label { display: block; font-size: 0.9rem; color: #334155; margin-bottom: 5px; }
-    .filter-form input, .filter-form select {
-        padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1;
-        font-size: 0.9rem; width: 150px;
-    }
-    .filter-form button {
-        padding: 9px 16px; background: #3b82f6; border: none; border-radius: 8px;
-        color: #fff; font-weight: 600; cursor: pointer;
-    }
+    .filter-form input, .filter-form select {padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1;font-size: 0.9rem; width: 150px;}
+    .filter-form button {padding: 9px 16px; background: #3b82f6; border: none; border-radius: 8px;color: #fff; font-weight: 600; cursor: pointer;}
     .filter-form button:hover { background: #2563eb; }
-
+    .leave-table { width: 100%;border-collapse: collapse;background: #fff; border-radius: 8px;overflow: hidden;font-size: 0.9rem;box-shadow: 0 2px 8px rgba(0,0,0,0.05);}
+    .leave-table thead {background: #f1f5f9;}
+    .leave-table th, .leave-table td {padding: 6px 10px; text-align: left;border-bottom: 1px solid #e2e8f0;vertical-align: middle;}
+    .leave-table th {font-weight: 600;color: #334155;text-transform: uppercase;font-size: 0.8rem;}
+    .leave-table tbody tr:hover {background: #f9fafb;}
+    .leave-table td form {margin: 0; }
+    .leave-table td:last-child {text-align: center;padding: 4px 6px;}
+    .leave-table button {padding: 4px 8px;font-size: 0.8rem; border-radius: 6px;}
 </style>
 
 </head>
@@ -91,6 +88,7 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
       <td>
         <form method="POST"  class="filter-form" style="gap:10px;">
           <input type="hidden" name="id" value="<?= $h['id'] ?>">
+          <button name="action" value="edit" class="btn" onclick="return confirm('Edit this holiday?')"> Edit</button>
           <button name="action" value="delete" class="btn" onclick="return confirm('Delete this holiday?')">🗑 Delete</button>
         </form>
       </td>

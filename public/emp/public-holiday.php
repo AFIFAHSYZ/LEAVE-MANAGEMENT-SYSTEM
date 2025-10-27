@@ -24,7 +24,7 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
   <meta charset="UTF-8">
   <title>Public Holidays | HR Dashboard</title>
   <link rel="stylesheet" href="../../assets/css/style.css">
-      <style>    
+  <style>    
     .filter-form {display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: flex-end; background: #fff; padding: 15px;border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.05);}
     .filter-form label { display: block; font-size: 0.9rem; color: #334155; margin-bottom: 5px; }
     .filter-form input, .filter-form select {padding: 8px 10px; border-radius: 8px; border: 1px solid #cbd5e1;font-size: 0.9rem; width: 150px; }
@@ -38,30 +38,12 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
     .leave-table td form {margin: 0;}
     .leave-table td:last-child {text-align: center;padding: 4px 6px;}
     .leave-table button {padding: 4px 8px;font-size: 0.8rem;border-radius: 6px;}
-</style>
+  </style>
 </head>
 <body>
 <div class="layout">
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="user-profile">
-            <h2>LMS</h2>
-            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
-            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-        </div>
-        <nav>
-            <ul>
-                <li><a href="emp-dashboard.php" >Dashboard</a></li>
-                <li><a href="apply-leave.php">Apply Leave</a></li>
-                <li><a href="my-leaves.php">My Leaves</a></li>
-                <li><a href="public-holiday.php" class="active">Public Holiday</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-        <div class="sidebar-footer">&copy; <?php echo date('Y'); ?> Teraju LMS</div>
-    </aside>
-
+<?php include "emp-sidebar.php"?>
   <header><h1> Public Holidays</h1></header>
 
   <main class="main-content">
@@ -95,6 +77,5 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
     </div>
   </main>
 </div>
-<script src="../../assets/js/sidebar.js"></script> 
 </body>
 </html>

@@ -91,31 +91,10 @@ try {
 </head>
 <body>
 <div class="layout">
-    <aside class="sidebar">
-<div class="user-profile">
-    <h2>LMS</h2>
-
-    <div class="avatar">
-        <?php echo strtoupper(substr($user['name'], 0, 1)); ?>
-    </div>
-    <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-</div>
-        <nav>
-            <ul>
-                <li><a href="emp-dashboard.php" class="active">Dashboard</a></li>
-                <li><a href="apply-leave.php">Apply Leave</a></li>
-                <li><a href="my-leaves.php">My Leaves</a></li>
-                <li><a href="public-holiday.php">Public Holiday</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-        <div class="sidebar-footer">
-            &copy; <?php echo date('Y'); ?> Teraju LMS
-        </div>
-    </aside>
+<?php include "emp-sidebar.php"?>
     <div class="main-content">
         <div class="container">
-                    <header>
+        <header>
             <h1>Teraju Leave Management System</h1>
         </header>
 
