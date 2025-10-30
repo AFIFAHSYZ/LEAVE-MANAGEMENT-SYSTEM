@@ -44,15 +44,21 @@ function calculateLeaveDaysPHP($start_date, $end_date, $leave_type_id, $saturday
 
         if ($dow === 0) {
             // Sunday off
-        } elseif ($dow === 6) {
-            // Saturday
-            $yearStart = new DateTime($start->format('Y-01-01'));
-            $weeksSinceYearStart = floor($start->diff($yearStart)->days / 7);
-            $isWorkWeek = ($saturday_cycle === 'work')
-                ? ($weeksSinceYearStart % 2 === 0)
-                : ($weeksSinceYearStart % 2 === 1);
-            if ($isWorkWeek) $days += 0.5;
-        } else {
+} elseif ($dow === 6) {
+    // Saturday logic
+    if ($saturday_cycle === 'none') {
+        // Never works on Saturday
+        // do nothing (always off)
+    } else {
+        $yearStart = new DateTime($start->format('Y-01-01'));
+        $weeksSinceYearStart = floor($start->diff($yearStart)->days / 7);
+        $isWorkWeek = ($saturday_cycle === 'work')
+            ? ($weeksSinceYearStart % 2 === 0)
+            : ($weeksSinceYearStart % 2 === 1);
+        if ($isWorkWeek) $days += 0.5;
+    }
+}
+ else {
             $days += 1.0;
         }
 
@@ -205,13 +211,19 @@ function calculateDaysJS(start, end, leaveTypeText, cycle) {
     const dow = current.getDay();
     if (dow === 0) {
       // Sunday off
-    } else if (dow === 6) {
-      const yearStart = new Date(current.getFullYear(), 0, 1);
-      const diffDays = Math.floor((current - yearStart) / (1000*60*60*24));
-      const weeksSinceYearStart = Math.floor(diffDays / 7);
-      const isWorkWeek = (cycle === 'work') ? (weeksSinceYearStart % 2 === 0) : (weeksSinceYearStart % 2 === 1);
-      if (isWorkWeek) count += 0.5;
-    } else {
+} else if (dow === 6) {
+  if (cycle === 'none') {
+    // never works Saturday
+  } else {
+    const yearStart = new Date(current.getFullYear(), 0, 1);
+    const diffDays = Math.floor((current - yearStart) / (1000*60*60*24));
+    const weeksSinceYearStart = Math.floor(diffDays / 7);
+    const isWorkWeek = (cycle === 'work') ? (weeksSinceYearStart % 2 === 0) : (weeksSinceYearStart % 2 === 1);
+    if (isWorkWeek) count += 0.5;
+  }
+}
+
+ else {
       count += 1.0;
     }
     current.setDate(current.getDate() + 1);
