@@ -172,30 +172,16 @@ $newStatus = ($action === 'approved') ? 'approved' : 'rejected';
 <div class="layout">
 
     <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="user-profile">
-            <h2>LMS</h2>
-            <div class="avatar"><?php echo strtoupper(substr($user['name'], 0, 1)); ?></div>
-            <p class="user-name"><?php echo htmlspecialchars($user['name']); ?></p>
-            <p style="font-size:0.85rem; color:#64748b;">Manager</p>
-        </div>
-        <nav>
-            <ul>
-                <li><a href="manager-dashboard.php" >Dashboard</a></li>
-                <li><a href="team-leaves.php" class="active">Team Leaves</a></li>
-                <li><a href="../logout.php">Logout</a></li>
-            </ul>
-        </nav>
-        <div class="sidebar-footer">&copy; <?php echo date('Y'); ?> Teraju LMS</div>
-    </aside>
+  <?php include 'm-sidebar.php'; ?>
+
 
         <header>
-        <h1>Team Leave Requests</h1>
+        <h1>Leave Management System</h1>
     </header>
     <!-- Main -->
     <main class="main-content">
         <div class="card">
-            <h2>Leave Management System</h2>
+            <h2>Team Leave Requests</h2>
 
             <!-- Filters -->
             <form method="GET" class="filter-form">
