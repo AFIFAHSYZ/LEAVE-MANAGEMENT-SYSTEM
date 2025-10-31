@@ -101,9 +101,9 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
       <table class="leave-table" style="margin-top:15px;">
         <thead>
           <tr>
-            <th>ID</th>
+            <th>No.</th>
             <th>Employee</th>
-            <th>Email</th> <!-- ✅ Added Email Column -->
+            <th>Email</th> 
             <th>Leave Type</th>
             <th>Start</th>
             <th>End</th>
@@ -112,9 +112,9 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
           </tr>
         </thead>
         <tbody>
-          <?php foreach ($requests as $r): ?>
+          <?php $i = 1; foreach ($requests as $r): ?>
             <tr>
-              <td><?= $r['id'] ?></td>
+              <td><?= $i++ ?></td> <!-- Row number -->
               <td><?= htmlspecialchars($r['employee']) ?></td>
               <td><?= htmlspecialchars($r['email']) ?></td>
               <td><?= htmlspecialchars($r['leave_type']) ?></td>

@@ -23,12 +23,14 @@ $start_date = $_GET['start_date'] ?? '';
 $end_date = $_GET['end_date'] ?? '';
 
 // Base query
-$sql = "SELECT id, name, email, position, date_joined FROM users WHERE 1=1";
+$sql = "SELECT id, name, email, position, date_joined 
+        FROM users 
+        WHERE position != 'manager'";
 $params = [];
 
 // Apply filters
 if ($search) {
-    $sql .= " AND (name LIKE :search OR email LIKE :search)";
+    $sql .= " AND (LOWER(name) LIKE LOWER(:search) OR LOWER(email) LIKE LOWER(:search))";
     $params[':search'] = "%$search%";
 }
 if ($position) {
@@ -98,30 +100,31 @@ $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </form>
 
 <table class="leave-table">
-  <thead>
+<thead>
+  <tr>
+    <th>No.</th>
+    <th>Name</th>
+    <th>Email</th>
+    <th>Position</th>
+    <th>Date Joined</th>
+    <th>Action</th>
+  </tr>
+</thead>
+<tbody>
+  <?php $i = 1; foreach ($employees as $e): ?>
     <tr>
-      <th>ID</th>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Position</th>
-      <th>Date Joined</th>
-      <th>Action</th>
+      <td><?= $i++ ?></td> <!-- Row number -->
+      <td><?= htmlspecialchars($e['name']) ?></td>
+      <td><?= htmlspecialchars($e['email']) ?></td>
+      <td><?= ucfirst($e['position']) ?></td>
+      <td><?= $e['date_joined'] ?></td>
+      <td>
+        <a href="employee-balances.php?id=<?= (int)$e['id'] ?>" class="btn-view">View Balances</a>
+      </td>
     </tr>
-  </thead>
-  <tbody>
-    <?php foreach ($employees as $e): ?>
-      <tr>
-        <td><?= $e['id'] ?></td>
-        <td><?= htmlspecialchars($e['name']) ?></td>
-        <td><?= htmlspecialchars($e['email']) ?></td>
-        <td><?= ucfirst($e['position']) ?></td>
-        <td><?= $e['date_joined'] ?></td>
-        <td>
-          <a href="employee-balances.php?id=<?= $e['id'] ?>" class="btn-view"> View Balances</a>
-        </td>
-      </tr>
-    <?php endforeach; ?>
-  </tbody>
+  <?php endforeach; ?>
+</tbody>
+
 </table>
   </div>
 </main>
