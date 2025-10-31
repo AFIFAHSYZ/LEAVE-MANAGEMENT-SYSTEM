@@ -140,5 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   </div>
 </div>
+<script src="../../assets/js/sidebar.js"></script> 
+
 </body>
 </html>
