@@ -570,6 +570,7 @@ totalDaysInput.addEventListener('blur', function() {
   if (v < 0.75) v = 0.5; else v = 1.0;
   totalDaysInput.value = v.toFixed((v % 1 === 0) ? 0 : 1);
 });</script>
+<script src="../../assets/js/sidebar.js"></script> 
 
 </body>
 </html>
