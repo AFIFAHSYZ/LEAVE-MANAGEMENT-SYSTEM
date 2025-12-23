@@ -22,7 +22,7 @@ p.subtitle { color: #6b7280; font-size: 1rem; margin-bottom: 30px; }
 .btn-full { background: #dc7907; color: #ffffffcc; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
 .btn-full:hover { background: #a85b04; transform: translateY(-2px); }
 .btn-outline { border: 2px solid #dc7907; color: #dc7907; background: transparent; }
-.btn-outline:hover { background: #dc7907; color: #fff; transform: translateY(-2px); }
+.btn-outline:hover { background: #dc7907; color: #fff;  transform: translateY(-2px); }
 footer { text-align: center; margin-top: 40px; font-size: 0.9rem; color: #94a3b8; }
 @media (max-width: 480px) { .container { padding: 40px 25px; } h1 { font-size: 1.6rem; } }
 
