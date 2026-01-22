@@ -341,7 +341,7 @@ footer {text-align: center; margin-top: 40px; color: #666; font-size: 0.9rem;}
                 <div class="form-grid">
                     <div class="form-group">
                         <label>Full Name</label>
-                        <input type="text" name="name" required value="<?= htmlspecialchars($name ?? '') ?>">
+                        <input type="text" name="name" placeholder="eg. Ali Bin Abu" required value="<?= htmlspecialchars($name ?? '') ?>">
                     </div>
                     <div class="form-group">
                         <label>Position</label>
@@ -374,7 +374,7 @@ footer {text-align: center; margin-top: 40px; color: #666; font-size: 0.9rem;}
                     </div>
                     <div class="form-group">
                         <label>Project</label>
-                        <input type="text" name="project" required value="<?= htmlspecialchars($project ?? '') ?>">
+                        <input type="text" name="project" placeholder="Eg. " required value="<?= htmlspecialchars($project ?? '') ?>">
                     </div>
                     <div class="form-group">
                         <label>Contract</label>
