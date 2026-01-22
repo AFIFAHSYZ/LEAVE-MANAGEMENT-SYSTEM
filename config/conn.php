@@ -2,7 +2,7 @@
 $host = '127.0.0.1';
 $dbname = 'teraju';
 $user = 'teraju_user';
-$password = 'app123';
+$password = '######';
 
 try {
     $dsn = "pgsql:host=$host;port=5432;dbname=$dbname";
