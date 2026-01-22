@@ -3,7 +3,7 @@ declare(strict_types=1);
 session_start();
 header('Content-Type: application/json');
 
-require_once '../../config/conn.php';
+require_once '../../config/conn1.php';
 
 // Basic auth check
 if (!isset($_SESSION['user_id'])) {

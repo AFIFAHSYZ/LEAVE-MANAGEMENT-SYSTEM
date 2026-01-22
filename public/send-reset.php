@@ -1,7 +1,7 @@
 <?php
 session_start();
 require '../vendor/autoload.php';
-include '../config/conn.php'; // your PostgreSQL connection
+include '../config/conn1.php'; // your PostgreSQL connection
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;

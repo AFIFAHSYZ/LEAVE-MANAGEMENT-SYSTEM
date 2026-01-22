@@ -1,7 +1,7 @@
 <?php
 // download-attachment.php
 session_start();
-require_once '../config/conn.php';
+require_once '../config/conn1.php';
 
 // Require id param
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;

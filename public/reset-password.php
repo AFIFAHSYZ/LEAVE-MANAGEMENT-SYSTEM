@@ -1,5 +1,5 @@
 <?php
-include '../config/conn.php'; 
+include '../config/conn1.php'; 
 
 $token = $_GET['token'] ?? '';
 
