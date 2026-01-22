@@ -32,7 +32,7 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
     .filter-form button:hover { background: #2563eb; }
     .leave-table {width: 100%;border-collapse: collapse;background: #fff;border-radius: 8px;overflow: hidden;font-size: 0.9rem;box-shadow: 0 2px 8px rgba(0,0,0,0.05);}
     .leave-table thead {background: #f1f5f9;}
-    .leave-table th,.leave-table td {padding: 6px 10px;text-align: left;border-bottom: 1px solid #e2e8f0;vertical-align: middle;}
+    .leave-table th,.leave-table td {padding: 6px 10px;text-align: center; border-bottom: 1px solid #e2e8f0;vertical-align: middle;}
     .leave-table th {font-weight: 600;color: #334155;text-transform: uppercase;font-size: 0.8rem;}
     .leave-table tbody tr:hover {background: #f9fafb;}
     .leave-table td form {margin: 0;}
@@ -57,23 +57,20 @@ $holidays = $pdo->query("SELECT * FROM public_holidays ORDER BY holiday_date ASC
   document.getElementById('ph-title').textContent = `${year}'s Public Holiday`;
 </script>
 
-      <table class="leave-table" style="margin-top:15px;">
-        <thead><tr><th>ID</th><th>Name</th><th>Date</th></tr></thead>
-<tbody>
-  <?php foreach ($holidays as $index => $h): ?>
-    <tr>
-      <td><?= $index + 1 ?></td> <!-- Show row number -->
-      <td><?= htmlspecialchars($h['name']) ?></td>
-      <td><?= date('d M Y', strtotime($h['holiday_date'])) ?></td>
-      <td>
-        <form method="POST"  class="filter-form" style="gap:10px;">
-          <input type="hidden" name="id" value="<?= $h['id'] ?>">
-        </form>
-      </td>
-    </tr>
-  <?php endforeach; ?>
-</tbody>
-      </table>
+<table class="leave-table" style="margin-top:15px;">
+  <thead>
+    <tr><th>No.</th><th>Name</th><th>Date</th></tr>
+  </thead>
+  <tbody>
+    <?php foreach ($holidays as $index => $h): ?>
+      <tr>
+        <td><?= $index + 1 ?></td>
+        <td><?= htmlspecialchars($h['name']) ?></td>
+        <td><?= date('d M Y', strtotime($h['holiday_date'])) ?></td>
+      </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
     </div>
   </main>
 </div>
