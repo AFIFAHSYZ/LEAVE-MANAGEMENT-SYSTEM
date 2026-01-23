@@ -69,49 +69,18 @@ $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <link rel="stylesheet" href="../../assets/css/style.css">
 
 <style>
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 15px;
-        margin-bottom: 25px;
-    }
-    .stat-card {
-        background: #f8fafc;
-        border-radius: 12px;
-        padding: 15px;
-        text-align: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    .stat-card h3 {
-        margin: 0;
-        font-size: 2em;
-        color: #3a4750;
-    }
-    .stat-card p {
-        color: #475569;
-        margin-top: 6px;
-    }
-
-    /* Compact Table */
-    .leave-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-        margin-top: 10px;
-    }
-    .leave-table th, .leave-table td {
-        padding: 6px 8px;
-        border-bottom: 1px solid #e5e7eb;
-        text-align: left;
-    }
-    .leave-table th {
-        background: #f3f4f6;
-        font-weight: 600;
-    }
-    .leave-table tr:nth-child(even) {
-        background: #fafafa;
-    }
-
+    .stats-grid {display: grid;grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));gap: 15px;margin-bottom: 25px;}
+    .stat-card {background: #f8fafc;border-radius: 12px;padding: 15px;text-align: center;box-shadow: 0 2px 5px rgba(0,0,0,0.05);}
+    .stat-card h3 {margin: 0;font-size: 2em;color: #3a4750;}
+    .stat-card p {color: #475569;margin-top: 6px;}
+/* Compact Table */
+    .leave-table {width: 100%;border-collapse: collapse;font-size: 13px;margin-top: 10px;}
+    .leave-table th, .leave-table td {padding: 6px 8px;border-bottom: 1px solid #e5e7eb;text-align: left;}
+    .leave-table th {background: #f3f4f6;font-weight: 600;}
+    .leave-table tr:nth-child(even) {background: #fafafa;}
+    .alert {padding: 12px 14px;border-radius: 10px;margin-bottom: 15px;font-size: 0.95rem;border: 1px solid;}
+    .alert-warning {background: #fffbeb;border-color: #f59e0b;color: #92400e;}
+    .alert-warning strong { font-weight: 700; }
 </style>
 </head>
 <body>
@@ -125,7 +94,14 @@ $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <main class="main-content">
     <div class="card">
-
+<?php if ((int)$stats['pending'] > 0): ?>
+  <div class="alert alert-warning">
+    <strong>Attention:</strong> You have <?= (int)$stats['pending'] ?> pending leave request(s) to review.
+    <a href="all-requests.php?status=pending" style="margin-left:8px; color:#92400e; font-weight:700; text-decoration:underline;">
+      View pending
+    </a>
+  </div>
+<?php endif; ?>
         <!-- Stats Section -->
         <div class="stats-grid">
             <div class="stat-card"><h3><?= $stats['total'] ?></h3><p>Total Requests</p></div>
