@@ -318,8 +318,8 @@ $leave_types = $pdo->query("
                     </div>
 
                     <div class="form-group" style="grid-column: 1 / -1;">
-                        <label>Attachment (Optional)</label>
-                        <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                        <label>Attachment <span style="color:red;">*</span></label>
+                        <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
                         <small class="small-note">Max 8MB. Allowed: PDF, JPG, PNG, DOC/DOCX.</small>
                     </div>
                 </div>
