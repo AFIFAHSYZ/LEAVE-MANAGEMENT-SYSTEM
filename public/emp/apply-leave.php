@@ -133,6 +133,50 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Please fill in all required fields.";
     }
 }
+// Get employee email + name
+$empStmt = $pdo->prepare("SELECT name, email FROM users WHERE id = :id");
+$empStmt->execute([':id' => $user_id]);
+$emp = $empStmt->fetch(PDO::FETCH_ASSOC);
+
+// Get all HR emails
+$hrStmt = $pdo->query("SELECT email FROM users WHERE position = 'hr' AND email IS NOT NULL AND email <> ''");
+$hrEmails = $hrStmt->fetchAll(PDO::FETCH_COLUMN);
+
+// Build email content
+$leaveTypeName = '';
+foreach ($types as $t) {
+    if ((int)$t['id'] === (int)$leave_type) { $leaveTypeName = $t['name']; break; }
+}
+
+$subjectHR = "New Leave Request: " . ($emp['name'] ?? 'Employee') . " (" . ($leaveTypeName ?: 'Leave') . ")";
+$bodyHR = "A new leave request has been submitted.\n\n"
+        . "Employee: " . ($emp['name'] ?? '-') . "\n"
+        . "Leave Type: " . ($leaveTypeName ?: '-') . "\n"
+        . "Start: $start_date\n"
+        . "End: $end_date\n"
+        . "Total Days: $total_days\n"
+        . "Reason: $reason\n\n"
+        . "Please review in HR system.";
+
+$subjectEmp = "Leave Request Submitted (" . ($leaveTypeName ?: 'Leave') . ")";
+$bodyEmp = "Your leave request has been submitted successfully.\n\n"
+         . "Leave Type: " . ($leaveTypeName ?: '-') . "\n"
+         . "Start: $start_date\n"
+         . "End: $end_date\n"
+         . "Total Days: $total_days\n"
+         . "Status: pending\n\n"
+         . "You will be notified once HR reviews it.";
+
+// Queue HR emails
+$q = $pdo->prepare("INSERT INTO email_queue (to_email, subject, body) VALUES (:to, :subj, :body)");
+foreach ($hrEmails as $to) {
+    $q->execute([':to' => $to, ':subj' => $subjectHR, ':body' => $bodyHR]);
+}
+
+// Queue employee confirmation
+if (!empty($emp['email'])) {
+    $q->execute([':to' => $emp['email'], ':subj' => $subjectEmp, ':body' => $bodyEmp]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
