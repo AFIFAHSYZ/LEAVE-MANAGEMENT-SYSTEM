@@ -226,7 +226,6 @@ textarea {resize: none;}
           <div class="form-group">
             <label for="total_days">Total Days <span style="color:red;">*</span></label>
             <input type="number" step="0.5" min="0.5" id="total_days" name="total_days" placeholder="e.g. 1.5" required>
-            <small class="small-note">Enter total days manually (0.5 increments). System will use what you type.</small>
           </div>
 
           <div class="form-group" style="grid-column: 1 / -1;">
