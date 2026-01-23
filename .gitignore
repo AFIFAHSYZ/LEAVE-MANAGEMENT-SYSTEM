@@ -6,3 +6,4 @@ config/conn.php
 config/conn.php
 config/conn.php
 config/conn1.php
+.env
