@@ -26,51 +26,115 @@ if (!$id) {
     exit();
 }
 
+// Initialize to avoid undefined variable warnings
+$request = null;
+$daysTaken = 0;
+$holidays = 0;
+$effectiveDays = 0.0;
+
 /* =========================
-   HANDLE VERIFY (HR CAN VERIFY ALL TYPES)
+   HANDLE VERIFY (FINAL APPROVAL + UPDATE BALANCES)
    ========================= */
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'verify') {
-    // Fetch latest request
-    $stmt = $pdo->prepare("
-        SELECT lr.*, lt.name AS leave_type
-        FROM leave_requests lr
-        LEFT JOIN leave_types lt ON lr.leave_type_id = lt.id
-        WHERE lr.id = :id
-    ");
-    $stmt->execute([':id' => $id]);
-    $request = $stmt->fetch(PDO::FETCH_ASSOC);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'verify') {
+    try {
+        $pdo->beginTransaction();
 
-    if (!$request) {
-        die("Leave request not found.");
-    }
+        // Lock ONLY the leave_requests row
+        $stmt = $pdo->prepare("
+            SELECT id, user_id, leave_type_id, start_date, end_date, reason, status
+            FROM leave_requests
+            WHERE id = :id
+            FOR UPDATE
+        ");
+        $stmt->execute([':id' => $id]);
+        $req = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $status = strtolower($request['status'] ?? '');
+        if (!$req) {
+            throw new Exception('Leave request not found.');
+        }
 
-    // If already verified, do nothing
-    if ($status === 'verified') {
-        header("Location: verify-leave.php?id=$id");
+        $status = strtolower($req['status'] ?? '');
+
+        // Prevent double subtraction
+        if ($status !== 'verified') {
+
+            // Calculate effective days (range - public holidays)
+            if (!empty($req['start_date']) && !empty($req['end_date'])) {
+                $daysTaken = (strtotime($req['end_date']) - strtotime($req['start_date'])) / 86400 + 1;
+
+                $phStmt = $pdo->prepare("
+                    SELECT COUNT(*)
+                    FROM public_holidays
+                    WHERE holiday_date BETWEEN :start AND :end
+                ");
+                $phStmt->execute([':start' => $req['start_date'], ':end' => $req['end_date']]);
+                $holidays = (int)$phStmt->fetchColumn();
+
+                $effectiveDays = (float)max(0, $daysTaken - $holidays);
+            }
+
+            if ($effectiveDays <= 0) {
+                throw new Exception("Effective days is 0. Cannot verify this leave.");
+            }
+
+            // Use the year of the leave start_date (safer than current year)
+            $year = (int)date('Y', strtotime((string)$req['start_date']));
+
+            // Ensure leave_balances row exists (requires UNIQUE(user_id, leave_type_id, year))
+            $stmt = $pdo->prepare("
+                INSERT INTO leave_balances (user_id, leave_type_id, year, entitled_days, carry_forward, used_days, total_available)
+                VALUES (:uid, :ltid, :yr, 0, 0, 0, 0)
+                ON CONFLICT (user_id, leave_type_id, year) DO NOTHING
+            ");
+            $stmt->execute([
+                ':uid'  => (int)$req['user_id'],
+                ':ltid' => (int)$req['leave_type_id'],
+                ':yr'   => $year
+            ]);
+
+            // Update balances: used_days += effectiveDays, total_available -= effectiveDays
+            $stmt = $pdo->prepare("
+                UPDATE leave_balances
+                SET used_days = COALESCE(used_days, 0) + :days,
+                    total_available = COALESCE(total_available, 0) - :days
+                WHERE user_id = :uid AND leave_type_id = :ltid AND year = :yr
+            ");
+            $stmt->execute([
+                ':days' => $effectiveDays,
+                ':uid'  => (int)$req['user_id'],
+                ':ltid' => (int)$req['leave_type_id'],
+                ':yr'   => $year
+            ]);
+
+            // Mark as verified (final)
+            $stmt = $pdo->prepare("
+                UPDATE leave_requests
+                SET status = 'verified',
+                    verified_by = :hr,
+                    verified_at = NOW()
+                WHERE id = :id
+            ");
+            $stmt->execute([':hr' => $user_id, ':id' => $id]);
+        }
+
+        $pdo->commit();
+
+        header("Location: verify-leave.php?id=" . urlencode((string)$id));
         exit();
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        $errorMsg = "Error verifying leave: " . $e->getMessage();
+        // fall through to display page with error
     }
-
-    // Verify (for ANY leave type)
-    $stmt = $pdo->prepare("
-        UPDATE leave_requests
-        SET status = 'verified',
-            verified_by = :hr,
-            verified_at = NOW()
-        WHERE id = :id
-    ");
-    $stmt->execute([':hr' => $user_id, ':id' => $id]);
-
-    header("Location: verify-leave.php?id=$id");
-    exit();
 }
 
 /* =========================
-   FETCH REQUEST (LATEST)
+   FETCH REQUEST (FOR DISPLAY)
    ========================= */
 $stmt = $pdo->prepare("
-    SELECT lr.*, u.name AS employee_name, lt.name AS leave_type,
+    SELECT lr.*,
+           u.name AS employee_name,
+           lt.name AS leave_type,
            h.name AS verified_by_name
     FROM leave_requests lr
     JOIN users u ON lr.user_id = u.id
@@ -86,21 +150,24 @@ if (!$request) {
 }
 
 /* =========================
-   EFFECTIVE DAYS (REMOVE PUBLIC HOLIDAYS)
+   EFFECTIVE DAYS (REMOVE PUBLIC HOLIDAYS) - FOR DISPLAY
    ========================= */
-$daysTaken = $holidays = $effectiveDays = 0;
+$daysTaken = 0;
+$holidays = 0;
+$effectiveDays = 0.0;
+
 if (!empty($request['start_date']) && !empty($request['end_date'])) {
     $daysTaken = (strtotime($request['end_date']) - strtotime($request['start_date'])) / 86400 + 1;
 
     $phStmt = $pdo->prepare("
-        SELECT COUNT(*) 
-        FROM public_holidays 
+        SELECT COUNT(*)
+        FROM public_holidays
         WHERE holiday_date BETWEEN :start AND :end
     ");
     $phStmt->execute([':start' => $request['start_date'], ':end' => $request['end_date']]);
     $holidays = (int)$phStmt->fetchColumn();
 
-    $effectiveDays = max(0, $daysTaken - $holidays);
+    $effectiveDays = (float)max(0, $daysTaken - $holidays);
 }
 ?>
 <!DOCTYPE html>
@@ -127,14 +194,16 @@ if (!empty($request['start_date']) && !empty($request['end_date'])) {
   background: #16a34a;
   color: #fff;
   transform: translateY(-1px);
-}.back-link {display:inline-block; margin-bottom:15px; text-decoration:none; color:#2563eb; font-weight:600; background:#e0f2fe; padding:6px 12px; border-radius:6px;}
+}
+.back-link {display:inline-block; margin-bottom:15px; text-decoration:none; color:#2563eb; font-weight:600; background:#e0f2fe; padding:6px 12px; border-radius:6px;}
 .back-link:hover {background:#bfdbfe; color:#1e40af;}
 .status-badge {padding:4px 10px; border-radius:6px; font-weight:600;}
 .note {margin-top:10px; color:#475569; font-size:0.9rem;}
+.error-box {background:#fee2e2; color:#991b1b; padding:10px; border-radius:8px; margin-bottom:12px;}
 </style>
 <script>
 function confirmVerify() {
-  return confirm("Are you sure you want to verify this leave?");
+  return confirm("Are you sure you want to verify this leave? This will deduct the employee's leave balance.");
 }
 </script>
 </head>
@@ -150,6 +219,10 @@ function confirmVerify() {
     <div class="card">
       <h2>Verify Leave Request</h2>
       <hr><br>
+
+      <?php if (!empty($errorMsg)): ?>
+        <div class="error-box"><?= htmlspecialchars($errorMsg) ?></div>
+      <?php endif; ?>
 
       <div class="info-grid">
         <div class="label">Name:</div>
@@ -188,7 +261,7 @@ function confirmVerify() {
         <?php endif; ?>
 
         <div class="label">Reason:</div>
-        <div><?= htmlspecialchars($request['reason'] ?: '-') ?></div>
+        <div><?= htmlspecialchars(($request['reason'] ?? '') ?: '-') ?></div>
       </div>
 
       <br>
