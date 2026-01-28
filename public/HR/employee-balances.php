@@ -13,14 +13,14 @@ $stmt = $pdo->prepare("SELECT name, position FROM users WHERE id = :id");
 $stmt->execute([':id' => $_SESSION['user_id']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if ($user['position'] !== 'hr') {
+if (!$user || ($user['position'] ?? '') !== 'hr') {
     header("Location: ../../unauthorized.php");
     exit();
 }
 
 // Get employee ID
-$emp_id = $_GET['id'] ?? null;
-if (!$emp_id) {
+$emp_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+if ($emp_id <= 0) {
     header("Location: employees.php");
     exit();
 }
@@ -29,10 +29,13 @@ if (!$emp_id) {
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id");
 $stmt->execute([':id' => $emp_id]);
 $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+if (!$employee) {
+    die("Employee not found.");
+}
 
 // Fetch leave balances
 $sql = "
-    SELECT 
+    SELECT
         lt.id AS leave_type_id,
         lt.name AS leave_type,
         lb.year,
@@ -43,7 +46,7 @@ $sql = "
     FROM leave_balances lb
     JOIN leave_types lt ON lb.leave_type_id = lt.id
     WHERE lb.user_id = :emp_id
-    ORDER BY lt.id
+    ORDER BY lb.year DESC, lt.id ASC
 ";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([':emp_id' => $emp_id]);
@@ -51,7 +54,7 @@ $balances = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Fetch leave records
 $sql2 = "
-    SELECT 
+    SELECT
         lr.id,
         lt.name AS leave_type,
         lr.start_date,
@@ -72,7 +75,7 @@ $requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title><?= htmlspecialchars($employee['name']) ?> | Leave Balances</title>
+<title><?= htmlspecialchars($employee['name'] ?? 'Employee') ?> | Leave Balances</title>
 <link rel="stylesheet" href="../../assets/css/style.css">
 <style>
   body { font-family: 'Inter', sans-serif; background: #f9fafb; color: #111827; }
@@ -81,42 +84,30 @@ $requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
   .employee-info { margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; }
   .employee-info p { margin: 5px 0; }
 
-  /* Table Styling */
   table.leave-table { width: 100%; border-collapse: collapse; margin-top: 10px; border-radius: 10px; overflow: hidden; font-size: 0.9rem; }
   table.leave-table th, table.leave-table td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: center; }
   table.leave-table th { background: #334155; color: #fff; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
   table.leave-table tr:nth-child(even) { background: #f1f5f9; }
   table.leave-table tr:hover { background: #e2e8f0; }
 
-  /* Editable cells */
-  .editable-cell { position: relative; min-width: 100px; }
+  .editable-cell { position: relative; min-width: 110px; }
   .cell-value { display: inline-block; font-weight: 500; }
-  .cell-input { width: 80px; text-align: center; padding: 4px; border: 1px solid #cbd5e1; border-radius: 6px; display: none; }
+  .cell-input { width: 90px; text-align: center; padding: 4px; border: 1px solid #cbd5e1; border-radius: 6px; display: none; }
 
-  /* Action buttons only in Action column */
   .action-cell { min-width: 140px; }
   .action-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; transition: 0.2s; padding: 4px 6px; }
   .action-btn.edit { color: #2563eb; }
   .action-btn.save { color: #16a34a; display: none; }
   .action-btn:hover { transform: scale(1.1); }
-  .action-btn:disabled { color: #9ca3af; cursor: not-allowed; }
 
-  /* Toast */
-  .status-msg {position: fixed;top: 16px;right: 16px;background: #16a34a;color: #fff;padding: 10px 15px;border-radius: 8px;box-shadow: 0 2px 10px rgba(0,0,0,0.1);opacity: 0;transform: translateY(-6px);transition: opacity .25s ease, transform .25s ease;z-index: 10000;    pointer-events: none;font-weight: 600;}
+  .status-msg {position: fixed;top: 16px;right: 16px;background: #16a34a;color: #fff;padding: 10px 15px;border-radius: 8px;box-shadow: 0 2px 10px rgba(0,0,0,0.1);opacity: 0;transform: translateY(-6px);transition: opacity .25s ease, transform .25s ease;z-index: 10000;pointer-events: none;font-weight: 600;}
   .status-msg.show { opacity: 1; transform: translateY(0); }
 
-  /* Leave Record Table */
   .record-table th { background: #334155; color: #fff; }
   .status-badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 0.85rem; text-transform: capitalize; font-weight: 500; }
-  .status-approved { background: #dcfce7; color: #166534; }
+  .status-verified { background: #dcfce7; color: #166534; }
   .status-pending { background: #fef9c3; color: #854d0e; }
   .status-rejected { background: #fee2e2; color: #991b1b; }
-
-  /* Filter Controls */
-  .filters { display: flex; gap: 10px; align-items: center; }
-  .filters select, .filters button { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; cursor: pointer; }
-  .filters button { background: #e5e7eb; }
-  .filters button:hover { background: #d1d5db; }
 
   .btn-back {background: #64748b;color: #fff;padding: 6px 12px;border-radius: 6px;text-decoration: none;font-weight: 500;transition: 0.2s;}
   .btn-back:hover {background: #475569;}
@@ -132,19 +123,14 @@ $requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
       <a href="employees.php" class="btn-back">← Back to List</a>
     </div>
 
-    <!-- Leave Balances -->
     <div class="card">
       <h2>Leave Balances</h2>
-      <h2><?= htmlspecialchars($employee['name']) ?></h2>
+      <h2><?= htmlspecialchars($employee['name'] ?? '') ?></h2>
 
       <div class="employee-info">
-        <p><strong>Email:</strong> <?= htmlspecialchars($employee['email']) ?></p>
-        <p><strong>Position:</strong> <?= ucfirst($employee['position']) ?></p>
-        <p><strong>Race:</strong> <?= $employee['race'] ?></p>
-        <p><strong>Religion:</strong> <?= $employee['religion'] ?></p>
-        <p><strong>Project:</strong> <?= $employee['project'] ?></p>
-        <p><strong>Contract:</strong> <?= $employee['contract'] ?></p>
-        <p><strong>Date Joined:</strong> <?= $employee['date_joined'] ?></p>
+        <p><strong>Email:</strong> <?= htmlspecialchars($employee['email'] ?? '') ?></p>
+        <p><strong>Position:</strong> <?= htmlspecialchars(ucfirst((string)($employee['position'] ?? ''))) ?></p>
+        <p><strong>Date Joined:</strong> <?= htmlspecialchars((string)($employee['date_joined'] ?? '')) ?></p>
       </div>
 
       <table class="leave-table" id="balancesTable">
@@ -160,76 +146,53 @@ $requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
           </tr>
         </thead>
         <tbody>
+        <?php if (count($balances) === 0): ?>
+          <tr><td colspan="7" style="text-align:center; color:#6b7280;">No leave balances found.</td></tr>
+        <?php else: ?>
           <?php foreach ($balances as $b):
-            $isAnnual = strtolower($b['leave_type']) === 'annual leave';
+            $isAnnual = (strtolower((string)$b['leave_type']) === 'annual leave');
           ?>
             <tr
-              data-leave-id="<?= htmlspecialchars($b['leave_type_id']) ?>"
-              data-user-id="<?= htmlspecialchars($emp_id) ?>"
+              data-leave-id="<?= htmlspecialchars((string)$b['leave_type_id']) ?>"
+              data-user-id="<?= htmlspecialchars((string)$emp_id) ?>"
+              data-year="<?= htmlspecialchars((string)$b['year']) ?>"
               data-is-annual="<?= $isAnnual ? '1' : '0' ?>"
             >
-              <td><?= htmlspecialchars($b['leave_type']) ?></td>
-              <td><?= htmlspecialchars($b['year']) ?></td>
+              <td><?= htmlspecialchars((string)$b['leave_type']) ?></td>
+              <td><?= htmlspecialchars((string)$b['year']) ?></td>
 
-              <!-- Entitled (editable when editing) -->
               <td class="editable-cell entitled-cell">
-                <span class="cell-value"><?= htmlspecialchars($b['entitled_days']) ?></span>
-                <input type="number" class="cell-input entitled-input" min="0" value="<?= htmlspecialchars($b['entitled_days']) ?>">
+                <span class="cell-value entitled-value"><?= htmlspecialchars((string)$b['entitled_days']) ?></span>
+                <input type="number" step="0.1" min="0" class="cell-input entitled-input" value="<?= htmlspecialchars((string)$b['entitled_days']) ?>">
               </td>
 
-              <!-- Used (editable when editing) -->
               <td class="editable-cell used-cell">
-                <span class="cell-value"><?= htmlspecialchars($b['used_days']) ?></span>
-                <input type="number" class="cell-input used-input" min="0" value="<?= htmlspecialchars($b['used_days']) ?>">
+                <span class="cell-value used-value"><?= htmlspecialchars((string)$b['used_days']) ?></span>
+                <input type="number" step="0.1" min="0" class="cell-input used-input" value="<?= htmlspecialchars((string)$b['used_days']) ?>">
               </td>
 
-              <!-- Carry Forward (editable only for Annual Leave) -->
               <td class="editable-cell carry-cell">
-                <span class="cell-value carry-value"><?= htmlspecialchars($b['carry_forward']) ?></span>
+                <span class="cell-value carry-value"><?= htmlspecialchars((string)$b['carry_forward']) ?></span>
                 <?php if ($isAnnual): ?>
-                  <input type="number" class="cell-input carry-input" min="0" max="5" value="<?= htmlspecialchars($b['carry_forward']) ?>">
+                  <input type="number" step="0.1" min="0" max="5" class="cell-input carry-input" value="<?= htmlspecialchars((string)$b['carry_forward']) ?>">
                 <?php endif; ?>
               </td>
 
-              <td><strong class="total-available"><?= htmlspecialchars($b['total_available']) ?></strong></td>
+              <td><strong class="total-available"><?= htmlspecialchars((string)$b['total_available']) ?></strong></td>
 
               <td class="action-cell">
-                <button class="action-btn edit" title="Edit">✏️</button>
-                <button class="action-btn save" title="Save">✅</button>
+                <button type="button" class="action-btn edit" title="Edit">✏️</button>
+                <button type="button" class="action-btn save" title="Save">✅</button>
               </td>
             </tr>
           <?php endforeach; ?>
+        <?php endif; ?>
         </tbody>
       </table>
     </div>
 
-    <!-- Leave Records -->
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2>Leave Records</h2>
-        <div class="filters">
-          <label>Type:</label>
-          <select id="filterType">
-            <option value="all">All</option>
-            <?php
-            $types = array_unique(array_column($requests, 'leave_type'));
-            foreach ($types as $t): ?>
-              <option value="<?= htmlspecialchars($t) ?>"><?= htmlspecialchars($t) ?></option>
-            <?php endforeach; ?>
-          </select>
-
-          <label>Status:</label>
-          <select id="filterStatus">
-            <option value="all">All</option>
-            <option value="approved">Approved</option>
-            <option value="verified">Verified</option>
-            <option value="pending">Pending</option>
-            <option value="rejected">Rejected</option>
-          </select>
-
-          <button id="clearFilter">Clear</button>
-        </div>
-      </div>
+      <h2>Leave Records</h2>
 
       <table class="leave-table record-table" id="recordTable">
         <thead>
@@ -245,15 +208,16 @@ $requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
         <tbody>
           <?php if (count($requests) > 0): ?>
             <?php foreach ($requests as $r): ?>
-              <tr data-type="<?= htmlspecialchars(strtolower($r['leave_type'])) ?>" data-status="<?= htmlspecialchars(strtolower($r['status'])) ?>">
-                <td><?= htmlspecialchars($r['leave_type']) ?></td>
-                <td><?= htmlspecialchars($r['start_date']) ?></td>
-                <td><?= htmlspecialchars($r['end_date']) ?></td>
-                <td><?= htmlspecialchars($r['total_days']) ?></td>
-                <td><?= htmlspecialchars($r['reason']) ?></td>
+              <?php $st = strtolower((string)$r['status']); ?>
+              <tr>
+                <td><?= htmlspecialchars((string)$r['leave_type']) ?></td>
+                <td><?= htmlspecialchars((string)$r['start_date']) ?></td>
+                <td><?= htmlspecialchars((string)$r['end_date']) ?></td>
+                <td><?= htmlspecialchars((string)$r['total_days']) ?></td>
+                <td><?= htmlspecialchars((string)$r['reason']) ?></td>
                 <td>
-                  <span class="status-badge status-<?= strtolower($r['status']) ?>">
-                    <?= htmlspecialchars($r['status']) ?>
+                  <span class="status-badge status-<?= htmlspecialchars($st) ?>">
+                    <?= htmlspecialchars((string)$r['status']) ?>
                   </span>
                 </td>
               </tr>
@@ -267,54 +231,17 @@ $requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
   </main>
 </div>
 
-<!-- Toast element -->
-<div id="status" class="status-msg" role="status" aria-live="polite">Leave balance updated ✅</div>
+<div id="status" class="status-msg" role="status" aria-live="polite"></div>
 
 <script src="../../assets/js/sidebar.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ---------------- Filter Logic ----------------
-  const filterType = document.getElementById('filterType');
-  const filterStatus = document.getElementById('filterStatus');
-  const clearFilter = document.getElementById('clearFilter');
-  const rows = document.querySelectorAll('#recordTable tbody tr');
-
-  function applyFilters() {
-    const selectedType = (filterType?.value || 'all').toLowerCase();
-    const selectedStatus = (filterStatus?.value || 'all').toLowerCase();
-
-    rows.forEach(row => {
-      const type = row.dataset.type;
-      const status = row.dataset.status;
-      const matchType = selectedType === 'all' || type === selectedType;
-      const matchStatus = selectedStatus === 'all' || status === selectedStatus;
-      row.style.display = (matchType && matchStatus) ? '' : 'none';
-    });
-  }
-
-  filterType?.addEventListener('change', applyFilters);
-  filterStatus?.addEventListener('change', applyFilters);
-  clearFilter?.addEventListener('click', () => {
-    if (filterType) filterType.value = 'all';
-    if (filterStatus) filterStatus.value = 'all';
-    rows.forEach(row => row.style.display = '');
-  });
-
-  // ---------------- Toast ----------------
-  function showStatus(message = 'Leave balance updated ✅', type = 'success') {
+  function showStatus(message, type = 'success') {
     const msg = document.getElementById('status');
-    if (!msg) {
-      console.warn('#status element not found.');
-      return;
-    }
+    if (!msg) return;
     msg.textContent = message;
-    if (type === 'success') {
-      msg.style.background = '#16a34a';
-      msg.style.color = '#fff';
-    } else {
-      msg.style.background = '#ef4444';
-      msg.style.color = '#fff';
-    }
+    msg.style.background = (type === 'success') ? '#16a34a' : '#ef4444';
+    msg.style.color = '#fff';
     msg.classList.remove('show');
     requestAnimationFrame(() => {
       msg.classList.add('show');
@@ -322,35 +249,32 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---------------- Inline Edit ----------------
   document.querySelectorAll('#balancesTable tbody tr').forEach(row => {
     const isAnnual = row.dataset.isAnnual === '1';
 
-    const entitledCell = row.querySelector('.entitled-cell');
-    const usedCell = row.querySelector('.used-cell');
-    const carryCell = row.querySelector('.carry-cell');
-    if (!entitledCell || !usedCell || !carryCell) return;
+    const entitledSpan = row.querySelector('.entitled-value');
+    const usedSpan = row.querySelector('.used-value');
+    const carrySpan = row.querySelector('.carry-value');
 
-    const entitledSpan = entitledCell.querySelector('.cell-value');
-    const usedSpan = usedCell.querySelector('.cell-value');
-    const carrySpan = carryCell.querySelector('.carry-value');
+    const entitledInput = row.querySelector('.entitled-input');
+    const usedInput = row.querySelector('.used-input');
+    const carryInput = row.querySelector('.carry-input');
 
-    const entitledInput = entitledCell.querySelector('.entitled-input');
-    const usedInput = usedCell.querySelector('.used-input');
-    const carryInput = carryCell.querySelector('.carry-input'); // may be null
-
-    const actionCell = row.querySelector('.action-cell');
-    const editBtn = actionCell?.querySelector('.action-btn.edit');
-    const saveBtn = actionCell?.querySelector('.action-btn.save');
-    if (!editBtn || !saveBtn) return;
-
-    const leaveId = row.dataset.leaveId;
-    const userId = row.dataset.userId;
+    const editBtn = row.querySelector('.action-btn.edit');
+    const saveBtn = row.querySelector('.action-btn.save');
     const totalStrong = row.querySelector('.total-available');
 
-    editBtn.addEventListener('click', () => {
-      [entitledSpan, usedSpan].forEach(s => s.style.display = 'none');
-      [entitledInput, usedInput].forEach(i => { if (i) i.style.display = 'inline-block'; });
+    if (!entitledSpan || !usedSpan || !entitledInput || !usedInput || !editBtn || !saveBtn || !totalStrong) return;
+
+    function enterEditMode() {
+      entitledInput.value = (entitledSpan.textContent || '').trim();
+      usedInput.value = (usedSpan.textContent || '').trim();
+      if (isAnnual && carryInput && carrySpan) carryInput.value = (carrySpan.textContent || '').trim();
+
+      entitledSpan.style.display = 'none';
+      usedSpan.style.display = 'none';
+      entitledInput.style.display = 'inline-block';
+      usedInput.style.display = 'inline-block';
 
       if (isAnnual && carryInput && carrySpan) {
         carrySpan.style.display = 'none';
@@ -359,109 +283,85 @@ document.addEventListener('DOMContentLoaded', () => {
 
       editBtn.style.display = 'none';
       saveBtn.style.display = 'inline-block';
-      entitledInput?.focus();
-    });
+      entitledInput.focus();
+    }
+
+    function exitEditMode() {
+      entitledSpan.style.display = 'inline-block';
+      usedSpan.style.display = 'inline-block';
+      entitledInput.style.display = 'none';
+      usedInput.style.display = 'none';
+
+      if (isAnnual && carryInput && carrySpan) {
+        carrySpan.style.display = 'inline-block';
+        carryInput.style.display = 'none';
+      }
+
+      saveBtn.style.display = 'none';
+      editBtn.style.display = 'inline-block';
+    }
+
+    editBtn.addEventListener('click', enterEditMode);
 
     saveBtn.addEventListener('click', async () => {
-      let entitled = parseInt(entitledInput?.value ?? '0') || 0;
-      let used = parseInt(usedInput?.value ?? '0') || 0;
+      const entitledStr = (entitledInput.value ?? '').trim();
+      const usedStr = (usedInput.value ?? '').trim();
+      const carryStr = (carryInput ? (carryInput.value ?? '').trim() : '');
+
+      if (entitledStr === '' || isNaN(Number(entitledStr)) || Number(entitledStr) < 0) {
+        showStatus('Entitled must be a valid number (>= 0).', 'error');
+        return;
+      }
+      if (usedStr === '' || isNaN(Number(usedStr)) || Number(usedStr) < 0) {
+        showStatus('Used must be a valid number (>= 0).', 'error');
+        return;
+      }
 
       const formData = new FormData();
-      formData.append('user_id', userId);
-      formData.append('leave_id', leaveId);
-      formData.append('entitled_days', entitled);
-      formData.append('used_days', used);
+      formData.append('user_id', row.dataset.userId);
+      formData.append('leave_id', row.dataset.leaveId);
+      formData.append('year', row.dataset.year);
+      formData.append('entitled_days', entitledStr);
+      formData.append('used_days', usedStr);
 
       if (isAnnual && carryInput) {
-        let carry = parseInt(carryInput.value) || 0;
-        carry = Math.max(0, Math.min(5, carry));
-        formData.append('carry_forward', carry);
+        formData.append('carry_forward', carryStr === '' ? '0' : carryStr);
       }
 
       try {
         const response = await fetch('update_balance_ajax.php', { method: 'POST', body: formData });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => '');
-          console.error('Non-OK response:', response.status, text);
-          showStatus('Error updating leave balance (network/server).', 'error');
-          return;
-        }
-
-        // Read once then parse
         const raw = await response.text();
+
         let data;
-        try {
-          data = JSON.parse(raw);
-        } catch (e) {
-          console.error('Invalid JSON response:', raw);
-          showStatus('Error updating leave balance (invalid server response).', 'error');
+        try { data = JSON.parse(raw); } catch (e) {
+          console.error('Invalid JSON:', raw);
+          showStatus('Invalid server response.', 'error');
           return;
         }
 
-        if (data && data.success) {
-          entitledSpan.textContent = data.entitled_days ?? entitledSpan.textContent;
-          usedSpan.textContent = data.used_days ?? usedSpan.textContent;
-          if (isAnnual && carrySpan && typeof data.carry_forward !== 'undefined') {
-            carrySpan.textContent = data.carry_forward;
-          }
-          if (totalStrong && typeof data.total_available !== 'undefined') {
-            totalStrong.textContent = data.total_available;
-          }
-
-          [entitledSpan, usedSpan].forEach(s => s.style.display = 'inline-block');
-          [entitledInput, usedInput].forEach(i => { if (i) i.style.display = 'none'; });
-
-          if (isAnnual && carryInput && carrySpan) {
-            carrySpan.style.display = 'inline-block';
-            carryInput.style.display = 'none';
-          }
-
-          saveBtn.style.display = 'none';
-          editBtn.style.display = 'inline-block';
-          showStatus('Leave balance updated ✅', 'success');
-        } else {
-          console.error('Update failed payload:', data);
-          showStatus((data && data.message) ? data.message : 'Error updating leave balance.', 'error');
+        if (!response.ok || !data.success) {
+          showStatus(data.message || 'Error updating.', 'error');
+          return;
         }
+
+        entitledSpan.textContent = data.entitled_days;
+        usedSpan.textContent = data.used_days;
+        if (isAnnual && carrySpan && typeof data.carry_forward !== 'undefined') {
+          carrySpan.textContent = data.carry_forward;
+        }
+        if (typeof data.total_available !== 'undefined') {
+          totalStrong.textContent = data.total_available;
+        }
+
+        exitEditMode();
+        showStatus('Leave balance updated ✅', 'success');
       } catch (err) {
-        console.error('Fetch error:', err);
-        showStatus('Error updating leave balance.', 'error');
+        console.error(err);
+        showStatus('Network/server error.', 'error');
       }
     });
-
-    // Keyboard shortcuts
-    [entitledInput, usedInput, carryInput].forEach(inp => {
-      if (!inp) return;
-      inp.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          saveBtn.click();
-        }
-        if (e.key === 'Escape') {
-          // cancel: reset inputs to current values
-          if (entitledInput) entitledInput.value = entitledSpan.textContent;
-          if (usedInput) usedInput.value = usedSpan.textContent;
-          if (isAnnual && carryInput && carrySpan) carryInput.value = carrySpan.textContent;
-
-          [entitledSpan, usedSpan].forEach(s => s.style.display = 'inline-block');
-          [entitledInput, usedInput].forEach(i => { if (i) i.style.display = 'none'; });
-
-          if (isAnnual && carryInput && carrySpan) {
-            carrySpan.style.display = 'inline-block';
-            carryInput.style.display = 'none';
-          }
-
-          saveBtn.style.display = 'none';
-          editBtn.style.display = 'inline-block';
-        }
-      });
-    });
   });
-
-  // Uncomment to test toast quickly:
-  // showStatus('Test success ✅', 'success');
-  // showStatus('Test error ❌', 'error');
 });
 </script>
+</body>
 </html>
