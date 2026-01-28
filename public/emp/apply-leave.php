@@ -11,7 +11,14 @@ if (!isset($_SESSION['user_id'])) {
 $user_id = (int)$_SESSION['user_id'];
 $success = $error = "";
 
-// Fetch user info (only used if you want to show the name, etc.)
+// Initialize variables to avoid "Undefined variable" warnings on GET
+$leave_type = '';
+$start_date = '';
+$end_date   = '';
+$reason     = '';
+$total_days = '';
+
+// Fetch user info
 $stmt = $pdo->prepare("SELECT name FROM users WHERE id = :id");
 $stmt->execute([':id' => $user_id]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -22,7 +29,8 @@ $types = $pdo->query("SELECT id, name FROM leave_types ORDER BY name ASC")->fetc
 /**
  * Encode an uploaded file for storage in a BYTEA column.
  */
-function encode_uploaded_file(array $file, int $maxBytes = 8388608, array $allowedMime = []): array {
+function encode_uploaded_file(array $file, int $maxBytes = 8388608, array $allowedMime = []): array
+{
     if (!isset($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return ['data' => null, 'type' => null, 'name' => null, 'size' => null, 'error' => null];
     }
@@ -34,7 +42,13 @@ function encode_uploaded_file(array $file, int $maxBytes = 8388608, array $allow
 
     $size = (int)($file['size'] ?? 0);
     if ($size > $maxBytes) {
-        return ['data' => null, 'type' => null, 'name' => $file['name'] ?? null, 'size' => $size, 'error' => "Attachment too large. Max " . ($maxBytes/1024/1024) . "MB allowed."];
+        return [
+            'data' => null,
+            'type' => null,
+            'name' => $file['name'] ?? null,
+            'size' => $size,
+            'error' => "Attachment too large. Max " . ($maxBytes / 1024 / 1024) . "MB allowed."
+        ];
     }
 
     $tmp = $file['tmp_name'] ?? null;
@@ -66,7 +80,7 @@ function encode_uploaded_file(array $file, int $maxBytes = 8388608, array $allow
     return ['data' => $data, 'type' => $mime, 'name' => $file['name'] ?? null, 'size' => $size, 'error' => null];
 }
 
-// Handle leave form submission (TRUST total_days typed by user)
+// Handle leave form submission
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $leave_type = $_POST['leave_type'] ?? '';
     $start_date = $_POST['start_date'] ?? '';
@@ -93,7 +107,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             // Attachment (optional)
             $fileRes = encode_uploaded_file($_FILES['attachment'] ?? [], 8 * 1024 * 1024, [
-                'application/pdf', 'image/jpeg', 'image/png',
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
                 'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             ]);
@@ -101,6 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 throw new Exception($fileRes['error']);
             }
 
+            // Insert request
             $sql = "INSERT INTO leave_requests
                     (user_id, leave_type_id, start_date, end_date, reason, total_days, attachment, attachment_type, status)
                     VALUES
@@ -108,7 +125,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':user_id', $user_id, PDO::PARAM_INT);
-            $stmt->bindValue(':leave_type', $leave_type, PDO::PARAM_INT);
+            $stmt->bindValue(':leave_type', (int)$leave_type, PDO::PARAM_INT);
             $stmt->bindValue(':start_date', $start_date, PDO::PARAM_STR);
             $stmt->bindValue(':end_date', $end_date, PDO::PARAM_STR);
             $stmt->bindValue(':reason', $reason, PDO::PARAM_STR);
@@ -123,6 +140,52 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
 
             $stmt->execute();
+
+            // Only after successful insert: queue emails
+            $empStmt = $pdo->prepare("SELECT name, email FROM users WHERE id = :id");
+            $empStmt->execute([':id' => $user_id]);
+            $emp = $empStmt->fetch(PDO::FETCH_ASSOC);
+
+            $hrStmt = $pdo->query("SELECT email FROM users WHERE position = 'hr' AND email IS NOT NULL AND email <> ''");
+            $hrEmails = $hrStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $leaveTypeName = '';
+            foreach ($types as $t) {
+                if ((int)$t['id'] === (int)$leave_type) {
+                    $leaveTypeName = $t['name'];
+                    break;
+                }
+            }
+
+            $subjectHR = "New Leave Request: " . ($emp['name'] ?? 'Employee') . " (" . ($leaveTypeName ?: 'Leave') . ")";
+            $bodyHR = "A new leave request has been submitted.\n\n"
+                . "Employee: " . ($emp['name'] ?? '-') . "\n"
+                . "Leave Type: " . ($leaveTypeName ?: '-') . "\n"
+                . "Start: $start_date\n"
+                . "End: $end_date\n"
+                . "Total Days: $total_days\n"
+                . "Reason: $reason\n\n"
+                . "Please review in HR system.";
+
+            $subjectEmp = "Leave Request Submitted (" . ($leaveTypeName ?: 'Leave') . ")";
+            $bodyEmp = "Your leave request has been submitted successfully.\n\n"
+                . "Leave Type: " . ($leaveTypeName ?: '-') . "\n"
+                . "Start: $start_date\n"
+                . "End: $end_date\n"
+                . "Total Days: $total_days\n"
+                . "Status: pending\n\n"
+                . "You will be notified once HR reviews it.";
+
+            $q = $pdo->prepare("INSERT INTO email_queue (to_email, subject, body) VALUES (:to, :subj, :body)");
+
+            foreach ($hrEmails as $to) {
+                $q->execute([':to' => $to, ':subj' => $subjectHR, ':body' => $bodyHR]);
+            }
+
+            if (!empty($emp['email'])) {
+                $q->execute([':to' => $emp['email'], ':subj' => $subjectEmp, ':body' => $bodyEmp]);
+            }
+
             $success = "Leave request submitted successfully! Total Days: $total_days";
         } catch (PDOException $e) {
             $error = "Failed to submit leave request: " . $e->getMessage();
@@ -132,50 +195,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
         $error = "Please fill in all required fields.";
     }
-}
-// Get employee email + name
-$empStmt = $pdo->prepare("SELECT name, email FROM users WHERE id = :id");
-$empStmt->execute([':id' => $user_id]);
-$emp = $empStmt->fetch(PDO::FETCH_ASSOC);
-
-// Get all HR emails
-$hrStmt = $pdo->query("SELECT email FROM users WHERE position = 'hr' AND email IS NOT NULL AND email <> ''");
-$hrEmails = $hrStmt->fetchAll(PDO::FETCH_COLUMN);
-
-// Build email content
-$leaveTypeName = '';
-foreach ($types as $t) {
-    if ((int)$t['id'] === (int)$leave_type) { $leaveTypeName = $t['name']; break; }
-}
-
-$subjectHR = "New Leave Request: " . ($emp['name'] ?? 'Employee') . " (" . ($leaveTypeName ?: 'Leave') . ")";
-$bodyHR = "A new leave request has been submitted.\n\n"
-        . "Employee: " . ($emp['name'] ?? '-') . "\n"
-        . "Leave Type: " . ($leaveTypeName ?: '-') . "\n"
-        . "Start: $start_date\n"
-        . "End: $end_date\n"
-        . "Total Days: $total_days\n"
-        . "Reason: $reason\n\n"
-        . "Please review in HR system.";
-
-$subjectEmp = "Leave Request Submitted (" . ($leaveTypeName ?: 'Leave') . ")";
-$bodyEmp = "Your leave request has been submitted successfully.\n\n"
-         . "Leave Type: " . ($leaveTypeName ?: '-') . "\n"
-         . "Start: $start_date\n"
-         . "End: $end_date\n"
-         . "Total Days: $total_days\n"
-         . "Status: pending\n\n"
-         . "You will be notified once HR reviews it.";
-
-// Queue HR emails
-$q = $pdo->prepare("INSERT INTO email_queue (to_email, subject, body) VALUES (:to, :subj, :body)");
-foreach ($hrEmails as $to) {
-    $q->execute([':to' => $to, ':subj' => $subjectHR, ':body' => $bodyHR]);
-}
-
-// Queue employee confirmation
-if (!empty($emp['email'])) {
-    $q->execute([':to' => $emp['email'], ':subj' => $subjectEmp, ':body' => $bodyEmp]);
 }
 ?>
 <!DOCTYPE html>
@@ -203,9 +222,7 @@ textarea {resize: none;}
 .error-box { background: #fee2e2; color: #991b1b; }
 footer {text-align: center; margin-top: 40px; color: #666; font-size: 0.9rem;}
 .small-note {color: #555; font-size: 0.9rem;}
-::placeholder {
-  color: #94a3b8;
-}
+::placeholder { color: #94a3b8; }
 </style>
 </head>
 <body>
@@ -240,20 +257,22 @@ footer {text-align: center; margin-top: 40px; color: #666; font-size: 0.9rem;}
 
           <div class="form-group">
             <label for="reason">Reason <span style="color: red;">*</span></label>
-<textarea name="reason" id="reason" rows="3" placeholder="Enter your reason..." required></textarea>          </div>
+            <textarea name="reason" id="reason" rows="3" placeholder="Enter your reason..." required></textarea>
+          </div>
 
           <div class="form-group">
             <label for="start_date">Start Date <span style="color: red;">*</span></label>
-<input type="text" id="start_date" name="start_date" placeholder="YYYY-MM-DD" required>          </div>
+            <input type="text" id="start_date" name="start_date" placeholder="YYYY-MM-DD" required>
+          </div>
 
           <div class="form-group">
             <label for="end_date">End Date <span style="color:red;">*</span></label>
-<input type="text" id="end_date" name="end_date" placeholder="YYYY-MM-DD" required>          </div>
+            <input type="text" id="end_date" name="end_date" placeholder="YYYY-MM-DD" required>
+          </div>
 
           <div class="form-group">
             <label for="total_days">Total Days <span style="color:red;">*</span></label>
-<input type="number" step="0.5" min="0.5" id="total_days" name="total_days"
-       placeholder="e.g. 1.5" required>
+            <input type="number" step="0.5" min="0.5" id="total_days" name="total_days" placeholder="e.g. 1.5" required>
           </div>
 
           <div class="form-group" style="grid-column: 1 / -1;">
@@ -278,7 +297,6 @@ footer {text-align: center; margin-top: 40px; color: #666; font-size: 0.9rem;}
 </div>
 
 <script>
-// Flatpickr: only disable Sundays + ensure end date not before start date.
 function disableSundays(date) { return date.getDay() === 0; }
 
 const startPicker = flatpickr("#start_date", {
